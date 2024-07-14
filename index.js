@@ -47,28 +47,43 @@ app.post('/chat/v1', async (req, res) => {
       url: apiUrl,
       headers: headers,
       data: body,
-      responseType: 'stream' // Important: Treat response as a stream
+      responseType: 'stream' 
     });
 
-    let reply = ''; 
+    let reply = '';
+    let buffer = ''; // Store incomplete JSON chunks
+
     response.data.on('data', (chunk) => {
-      const lines = chunk.toString('utf8').split('\n');
-      lines.forEach(line => {
+      buffer += chunk.toString('utf8'); // Accumulate chunks
+
+      let lines = buffer.split('\n');
+      buffer = ''; // Reset the buffer
+
+      lines.forEach((line, index) => {
         if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
-          const data = JSON.parse(line.substring(6));
-          if (data.choices && data.choices[0].delta.content) {
-            reply += data.choices[0].delta.content;
+          try {
+            // Attempt to parse the line as JSON
+            const data = JSON.parse(line.substring(6));
+            if (data.choices && data.choices[0].delta.content) {
+              reply += data.choices[0].delta.content;
+            }
+          } catch (error) {
+            // If parsing fails, it's likely an incomplete chunk
+            // Add the current line back to the buffer for the next iteration
+            if (index === lines.length - 1) { 
+              buffer = line; 
+            }
           }
         }
       });
     });
 
     response.data.on('end', () => {
-      res.json({ reply }); // Send the complete reply
+      res.json({ reply }); 
     });
 
   } catch (error) {
-    console.error(error); 
+    console.error("API Request Error:", error); // More descriptive error logging
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
