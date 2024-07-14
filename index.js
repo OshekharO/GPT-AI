@@ -146,33 +146,56 @@ app.post('/chat/v3', async (req, res) => {
     }
 });
 
+// API Route v4 - aichatonlineorg.erweima.ai (Streaming)
 app.post('/chat/v4', async (req, res) => {
   const { userMessage } = req.body;
-  const apiUrl = 'https://al.aifree.site/api/generate';
+  const apiUrl = 'https://aichatonlineorg.erweima.ai/aichatonline/api/chat/gpt4o/chat';
 
   const headers = {
-    'Content-Type': 'text/plain; charset=UTF-8',
+    'Content-Type': 'application/json',
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
-    'Origin': 'https://al.aifree.site',
-    'Referer': 'https://al.aifree.site/',
-    'cookie': 'cf_clearance=FxKOVp1lUh1J5n9A5yKuYeTtc5n3LvXc0cqAePHN40Y-1720894373-1.0.1.1-nUPQF5RAHmhlAlw5PEVGUZLAzaZWM63yGJOFixtzRYopEDkK5gFT0xt8y2wHYnu1PF7bAmUJ2z7NLCzEJ_yzcw'
+    'Origin': 'https://aichatonline.org',
+    'Referer': 'https://aichatonline.org/',
+    'uniqueid': '6dbd3acc4ffdf261b24b0541d1602cff'
   };
 
   const body = {
-    "messages": [
-      {
-        "role": "user",
-        "content": userMessage 
-      }
-    ],
-    "time": Date.now(),
-    "pass": null, 
-    "sign": "56ca5fd0f1ecef53c0df96473a5ca246f6afd553bbd36a4728fdba84bceba2b6" // Make sure this is correct
+    "prompt": userMessage,
+    "conversationId": "8bdd731372d5a0d1cf5f290712139b37",
+    "attachments": []
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
-    res.json({ reply: response.data }); // Send the response data
+    const response = await axios({
+      method: 'post',
+      url: apiUrl,
+      headers: headers,
+      data: body,
+      responseType: 'stream' 
+    });
+
+    let fullReply = '';
+
+    response.data.on('data', (chunk) => {
+      const lines = chunk.toString('utf8').split('\n');
+      lines.forEach(line => {
+        if (line.trim() !== '' && line.trim() !== '[DONE]') { 
+          try {
+            const data = JSON.parse(line);
+            if (data.data && data.data.message) {
+              fullReply += data.data.message; 
+            }
+          } catch (error) {
+            console.error("JSON Parsing Error:", error, line);
+          }
+        }
+      });
+    });
+
+    response.data.on('end', () => {
+      res.json({ reply: fullReply });
+    });
+
   } catch (error) {
     console.error("API Request Error:", error);
     res.status(500).json({ error: 'Something went wrong with API v4' });
