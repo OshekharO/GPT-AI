@@ -202,31 +202,31 @@ app.post('/chat/v4', async (req, res) => {
   }
 });
 
-// API Route v5 - editee.com
+// API Route v5 - wewordle.org
 app.post('/chat/v5', async (req, res) => {
   const { userMessage } = req.body;
-  const apiUrl = 'https://editee.com/submit/chatgptfree';
+  const apiUrl = 'https://wewordle.org/gptapi/v1/web/turbo';
 
   const headers = {
     'Content-Type': 'application/json',
-    'Accept': 'application/json, text/plain, */*',
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
-    'X-Requested-With': 'XMLHttpRequest', 
-    'Origin': 'https://editee.com',
-    'Referer': 'https://editee.com/chat-gpt',
-    'Cookie': 'editeecom_session=OVDHZKqtYCm1HkPlkh2LZsFTpAp1i5d7A5YO2B2n; _gcl_au=1.1.155406.1720922604; _ga_Y3ZJGJH1VW=GS1.1.1720922603.1.0.1720922603.0.0.0; _ga=GA1.1.531042445.1720922604; _fbp=fb.1.1720922607180.97154294421602588; _ga_ZBWXQECHGX=GS1.1.1720922607.1.0.1720922607.0.0.0; _tt_enable_cookie=1; _ttp=LShwFoeXUoLznbJA83OSgmDnk3B'
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+    'Origin': 'https://echatgpt.org',
+    'Referer': 'https://echatgpt.org/'
   };
 
   const body = {
-    "user_input": userMessage,
-    "context": " ",
-    "template_id": "",
-    "selected_model": "claude"
+    "messages": [
+      {
+        "content": userMessage,
+        "role": "user"
+      }
+    ]
   };
-
+  
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json({ reply: response.data.text }); // Send the 'text' field from the response
+    const assistantReply = response.data.message.content;
+    res.json({ reply: assistantReply });
   } catch (error) {
     console.error("API Request Error:", error);
     res.status(500).json({ error: 'Something went wrong with API v5' });
