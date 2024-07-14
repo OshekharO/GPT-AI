@@ -1,0 +1,15 @@
+{
+  "name": "chatbot-backend",
+  "version": "1.0.0",
+  "description": "Backend for chatbot website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
