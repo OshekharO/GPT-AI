@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
+const toughCookie = require('tough-cookie'); 
+const https = require('https');              
 
 const app = express();
 const port = 3000;
@@ -149,59 +151,108 @@ app.post('/chat/v3', async (req, res) => {
     }
 });
 
-// API Route v4 - tu72sy.aitianhu1.top
+// Cookie Jar for API v4 
+const cookieJar = new toughCookie.CookieJar(); 
+
+// API Route v4 - tu72sy.aitianhu1.top (Complete)
 app.post('/chat/v4', async (req, res) => {
   const { userMessage } = req.body;
-
   const apiUrl = 'https://tu72sy.aitianhu1.top/api/please-donot-reverse-engineering-me-thank-you';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json, text/plain, */*',
-    // ... add other necessary headers (cookie, referer, etc.)
-    // You may need to manage cookies if the API requires session persistence 
-  };
-  const body = {
-    "prompt": userMessage,
-    "options": {
-      "parentMessageId": "chatcmpl-VFC14ob4gjiZDJw9ZpR12TCFvN1wX" // Update if needed
-    },
-    "model": "gpt-3.5-turbo",
-    "OPENAI_API_KEY": "sk-AItianhuFreeForEveryone", 
-    "systemMessage": "You are an AI assistant, a large language model trained. Follow the user's instructions carefully. Respond using markdown.",
-    "temperature": 0.8,
-    "top_p": 1
-  };
 
   try {
+    // 1. Get Cookies
+    const cookies = await new Promise((resolve, reject) => {
+      cookieJar.getCookies(apiUrl, {}, (err, cookies) => {
+        if (err) reject(err);
+        else resolve(cookies);
+      });
+    });
+
+    // 2. Create Headers with Cookies
+    const headers = {
+      'authority': 'tu72sy.aitianhu1.top',
+      'method': 'POST',
+      'path': '/api/please-donot-reverse-engineering-me-thank-you',
+      'scheme': 'https',
+      'content-length': '326', // This needs to be calculated dynamically 
+      'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+      'accept': 'application/json, text/plain, */*',
+      'content-type': 'application/json',
+      'dnt': '1',
+      'sec-ch-ua-mobile': '?1',
+      'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
+      'sec-ch-ua-platform': '"Linux"', 
+      'origin': 'https://tu72sy.aitianhu1.top',
+      'sec-fetch-site': 'same-origin',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-dest': 'empty',
+      'referer': 'https://tu72sy.aitianhu1.top/',
+      'accept-encoding': 'gzip, deflate, br, zstd', 
+      'accept-language': 'en-US,en;q=0.9',
+      ...(cookies.length > 0 && { Cookie: cookies.map(c => c.cookieString()).join(';') })
+    };
+
+    // 3. Prepare Request Body 
+    const body = {
+      "prompt": userMessage,
+      "options": {
+        "parentMessageId": "chatcmpl-VFC14ob4gjiZDJw9ZpR12TCFvN1wX" 
+      },
+      "model": "gpt-3.5-turbo",
+      "OPENAI_API_KEY": "sk-AItianhuFreeForEveryone", 
+      "systemMessage": "You are an AI assistant, a large language model trained. Follow the user's instructions carefully. Respond using markdown.",
+      "temperature": 0.8,
+      "top_p": 1
+    };
+
+    // 4. Calculate Content-Length (Dynamically)
+    const bodyString = JSON.stringify(body);
+    headers['content-length'] = Buffer.byteLength(bodyString, 'utf8');
+
+    // 5. Create HTTPS Agent (for potential redirects)
+    const agent = new https.Agent({  
+      rejectUnauthorized: false    
+    });
+
+    // 6. Make API Request
     const response = await axios({
       method: 'post',
       url: apiUrl,
       headers: headers,
-      data: body,
-      responseType: 'stream'
+      data: bodyString, // Send the stringified body
+      responseType: 'stream',
+      httpsAgent: agent             
     });
 
-    let fullReply = ''; 
+    // 7. Store New Cookies (if any)
+    const responseCookies = response.headers['set-cookie'];
+    if (responseCookies) {
+      responseCookies.forEach(cookieHeader => {
+        cookieJar.setCookie(toughCookie.Cookie.parse(cookieHeader), apiUrl, (err) => {
+          if (err) console.error("Error setting cookie:", err);
+        });
+      });
+    }
 
+    // 8. Process Response Stream
+    let fullReply = '';
     response.data.on('data', (chunk) => {
-      const chunkString = chunk.toString('utf8');
-      // Since each chunk is a valid JSON, we can directly parse it
       try {
-        const data = JSON.parse(chunkString);
-        if (data.text) { // Check if the 'text' property exists
-          fullReply = data.text; // Update fullReply with the latest text
+        const data = JSON.parse(chunk.toString('utf8'));
+        if (data.text) { 
+          fullReply = data.text; 
         }
       } catch (error) {
-        console.error("JSON Parsing Error:", error, chunkString); // Log error with the chunk
+        console.error("JSON Parsing Error:", error); 
       }
     });
 
     response.data.on('end', () => {
-      res.json({ reply: fullReply }); 
+      res.json({ reply: fullReply });
     });
 
   } catch (error) {
-    console.error("API Request Error:", error); 
+    console.error("API Request Error:", error);
     res.status(500).json({ error: 'Something went wrong with API v4' });
   }
 });
