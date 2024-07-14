@@ -202,6 +202,36 @@ app.post('/chat/v4', async (req, res) => {
   }
 });
 
+// API Route v5 - editee.com
+app.post('/chat/v5', async (req, res) => {
+  const { userMessage } = req.body;
+  const apiUrl = 'https://editee.com/submit/chatgptfree';
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
+    'X-Requested-With': 'XMLHttpRequest', 
+    'Origin': 'https://editee.com',
+    'Referer': 'https://editee.com/chat-gpt'
+  };
+
+  const body = {
+    "user_input": userMessage,
+    "context": " ",
+    "template_id": "",
+    "selected_model": "claude"
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    res.json({ reply: response.data.text }); // Send the 'text' field from the response
+  } catch (error) {
+    console.error("API Request Error:", error);
+    res.status(500).json({ error: 'Something went wrong with API v5' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
