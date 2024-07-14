@@ -213,7 +213,8 @@ app.post('/chat/v5', async (req, res) => {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
     'X-Requested-With': 'XMLHttpRequest', 
     'Origin': 'https://editee.com',
-    'Referer': 'https://editee.com/chat-gpt'
+    'Referer': 'https://editee.com/chat-gpt',
+    'Cookie': 'editeecom_session=OVDHZKqtYCm1HkPlkh2LZsFTpAp1i5d7A5YO2B2n; _gcl_au=1.1.155406.1720922604; _ga_Y3ZJGJH1VW=GS1.1.1720922603.1.0.1720922603.0.0.0; _ga=GA1.1.531042445.1720922604; _fbp=fb.1.1720922607180.97154294421602588; _ga_ZBWXQECHGX=GS1.1.1720922607.1.0.1720922607.0.0.0; _tt_enable_cookie=1; _ttp=LShwFoeXUoLznbJA83OSgmDnk3B'
   };
 
   const body = {
