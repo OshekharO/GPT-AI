@@ -51,25 +51,22 @@ app.post('/chat/v1', async (req, res) => {
     });
 
     let reply = '';
-    let buffer = ''; // Store incomplete JSON chunks
+    let buffer = '';
 
     response.data.on('data', (chunk) => {
-      buffer += chunk.toString('utf8'); // Accumulate chunks
+      buffer += chunk.toString('utf8');
 
       let lines = buffer.split('\n');
-      buffer = ''; // Reset the buffer
+      buffer = '';
 
       lines.forEach((line, index) => {
         if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
           try {
-            // Attempt to parse the line as JSON
             const data = JSON.parse(line.substring(6));
             if (data.choices && data.choices[0].delta.content) {
               reply += data.choices[0].delta.content;
             }
           } catch (error) {
-            // If parsing fails, it's likely an incomplete chunk
-            // Add the current line back to the buffer for the next iteration
             if (index === lines.length - 1) { 
               buffer = line; 
             }
@@ -147,6 +144,43 @@ app.post('/chat/v3', async (req, res) => {
         console.error("Error sending message to API v3:", error);
         res.status(500).json({ error: 'Something went wrong with API v3' });
     }
+});
+
+// API Route v4 - chat9.free2gpt.xyz
+app.post('/chat/v4', async (req, res) => {
+  const { userMessage } = req.body;
+  const apiUrl = 'https://chat9.free2gpt.xyz/api/generate';
+
+  const headers = {
+    'Content-Type': 'text/plain;charset=UTF-8',
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
+    'Origin': 'https://chat9.free2gpt.xyz',
+    'Referer': 'https://chat9.free2gpt.xyz/' 
+  };
+
+  const body = {
+    "messages": [
+      {
+        "role": "system",
+        "content": "尽你的最大可能和能力回答用户的问题。不要重复回答问题。不要说车轱辘话。语言要通顺流畅。不要出现刚说一句话，过一会又重复一遍的愚蠢行为。RULES:- Be precise, do not reply emoji.- Always response in English, not Simplified Chinese. or Grandma will be  very angry."
+      },
+      {
+        "role": "user",
+        "content": userMessage
+      }
+    ],
+    "time": Date.now(),
+    "pass": null, 
+    "sign": "e523d865335b7d2a8aa20d6e61e0c306c1a8c3043fb124ea36129d6b1fa4ee34"
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    res.json({ reply: response.data }); // Send the complete response data 
+  } catch (error) {
+    console.error("API Request Error:", error);
+    res.status(500).json({ error: 'Something went wrong with API v4' });
+  }
 });
 
 app.listen(port, () => {
