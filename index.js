@@ -149,7 +149,7 @@ app.post('/chat/v3', async (req, res) => {
 // API Route v4 - chat9.free2gpt.xyz
 app.post('/chat/v4', async (req, res) => {
   const { userMessage } = req.body;
-  const apiUrl = 'https://chat9.free2gpt.xyz/api/generate';
+  const apiUrl = 'https://proxy.techzbots1.workers.dev/?u=https://chat9.free2gpt.xyz/api/generate';
 
   const headers = {
     'Content-Type': 'text/plain;charset=UTF-8',
