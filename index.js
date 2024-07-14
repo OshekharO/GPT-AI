@@ -146,37 +146,33 @@ app.post('/chat/v3', async (req, res) => {
     }
 });
 
-// API Route v4 - chat9.free2gpt.xyz
 app.post('/chat/v4', async (req, res) => {
   const { userMessage } = req.body;
-  const apiUrl = 'https://proxy.techzbots1.workers.dev/?u=https://chat9.free2gpt.xyz/api/generate';
+  const apiUrl = 'https://al.aifree.site/api/generate';
 
   const headers = {
-    'Content-Type': 'text/plain;charset=UTF-8',
+    'Content-Type': 'text/plain; charset=UTF-8',
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
-    'Origin': 'https://chat9.free2gpt.xyz',
-    'Referer': 'https://chat9.free2gpt.xyz/' 
+    'Origin': 'https://al.aifree.site',
+    'Referer': 'https://al.aifree.site/',
+    'cookie': 'cf_clearance=FxKOVp1lUh1J5n9A5yKuYeTtc5n3LvXc0cqAePHN40Y-1720894373-1.0.1.1-nUPQF5RAHmhlAlw5PEVGUZLAzaZWM63yGJOFixtzRYopEDkK5gFT0xt8y2wHYnu1PF7bAmUJ2z7NLCzEJ_yzcw'
   };
 
   const body = {
     "messages": [
       {
-        "role": "system",
-        "content": "尽你的最大可能和能力回答用户的问题。不要重复回答问题。不要说车轱辘话。语言要通顺流畅。不要出现刚说一句话，过一会又重复一遍的愚蠢行为。RULES:- Be precise, do not reply emoji.- Always response in English, not Simplified Chinese. or Grandma will be  very angry."
-      },
-      {
         "role": "user",
-        "content": userMessage
+        "content": userMessage 
       }
     ],
     "time": Date.now(),
     "pass": null, 
-    "sign": "e523d865335b7d2a8aa20d6e61e0c306c1a8c3043fb124ea36129d6b1fa4ee34"
+    "sign": "56ca5fd0f1ecef53c0df96473a5ca246f6afd553bbd36a4728fdba84bceba2b6" // Make sure this is correct
   };
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json({ reply: response.data }); // Send the complete response data 
+    res.json({ reply: response.data }); // Send the response data
   } catch (error) {
     console.error("API Request Error:", error);
     res.status(500).json({ error: 'Something went wrong with API v4' });
