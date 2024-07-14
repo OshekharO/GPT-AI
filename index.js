@@ -125,6 +125,30 @@ app.post('/chat/v2', async (req, res) => {
   }
 });
 
+// API Route v3 - Custom GPT-3.5-turbo API 
+app.post('/chat/v3', async (req, res) => {
+    const { userMessage } = req.body;
+
+    const baseURL = `https://proxy.techzbots1.workers.dev/?u=https://chatgpt.apinepdev.workers.dev/?question=`; 
+    const url = `${baseURL}${encodeURIComponent(userMessage)}`;
+
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            },
+        });
+
+        const aiResponse = response.data.answer; // Access the 'answer' property from the response
+        res.json({ reply: aiResponse }); 
+
+    } catch (error) {
+        console.error("Error sending message to API v3:", error);
+        res.status(500).json({ error: 'Something went wrong with API v3' });
+    }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
