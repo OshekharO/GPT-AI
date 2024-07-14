@@ -42,20 +42,33 @@ app.post('/chat/v1', async (req, res) => {
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
-    const chunks = response.data.split("\n\n");
-    let reply = "";
-    chunks.forEach(chunk => {
-      if (chunk.startsWith('data: ')) {
-        const data = JSON.parse(chunk.substring(6));
-        if (data.choices && data.choices[0].delta.content) {
-          reply += data.choices[0].delta.content;
-        }
-      }
+    const response = await axios({
+      method: 'post',
+      url: apiUrl,
+      headers: headers,
+      data: body,
+      responseType: 'stream' // Important: Treat response as a stream
     });
-    res.json({ reply });
+
+    let reply = ''; 
+    response.data.on('data', (chunk) => {
+      const lines = chunk.toString('utf8').split('\n');
+      lines.forEach(line => {
+        if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+          const data = JSON.parse(line.substring(6));
+          if (data.choices && data.choices[0].delta.content) {
+            reply += data.choices[0].delta.content;
+          }
+        }
+      });
+    });
+
+    response.data.on('end', () => {
+      res.json({ reply }); // Send the complete reply
+    });
+
   } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
+    console.error(error); 
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
