@@ -149,6 +149,71 @@ app.post('/chat/v3', async (req, res) => {
     }
 });
 
+// API Route v4 - tu72sy.aitianhu1.top
+app.post('/chat/v4', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://tu72sy.aitianhu1.top/api/please-donot-reverse-engineering-me-thank-you';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
+    // ... add other necessary headers (cookie, referer, etc.)
+    // You may need to manage cookies if the API requires session persistence 
+  };
+  const body = {
+    "prompt": userMessage,
+    "options": {
+      "parentMessageId": "chatcmpl-VFC14ob4gjiZDJw9ZpR12TCFvN1wX" // Update if needed
+    },
+    "model": "gpt-3.5-turbo",
+    "OPENAI_API_KEY": "sk-AItianhuFreeForEveryone", 
+    "systemMessage": "You are an AI assistant, a large language model trained. Follow the user's instructions carefully. Respond using markdown.",
+    "temperature": 0.8,
+    "top_p": 1
+  };
+
+  try {
+    const response = await axios({
+      method: 'post',
+      url: apiUrl,
+      headers: headers,
+      data: body,
+      responseType: 'stream' 
+    });
+
+    let fullReply = ''; 
+
+    response.data.on('data', (chunk) => {
+      const chunkString = chunk.toString('utf8');
+
+      // Split the chunk by the closing brace '}' to separate JSON objects
+      const jsonObjects = chunkString.split('}').filter(obj => obj.trim() !== '');
+
+      jsonObjects.forEach(jsonObject => {
+        try {
+          // Parse each potential JSON object
+          const data = JSON.parse(jsonObject + '}'); // Add back the closing brace
+
+          if (data.detail && data.detail.choices && data.detail.choices[0].delta.content) {
+            fullReply += data.detail.choices[0].delta.content;
+          }
+        } catch (error) {
+          // Handle potential parsing errors for incomplete chunks
+          console.error("JSON Parsing Error:", error); 
+        }
+      });
+    });
+
+    response.data.on('end', () => {
+      res.json({ reply: fullReply }); 
+    });
+
+  } catch (error) {
+    console.error("API Request Error:", error); 
+    res.status(500).json({ error: 'Something went wrong with API v4' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
