@@ -178,30 +178,22 @@ app.post('/chat/v4', async (req, res) => {
       url: apiUrl,
       headers: headers,
       data: body,
-      responseType: 'stream' 
+      responseType: 'stream'
     });
 
     let fullReply = ''; 
 
     response.data.on('data', (chunk) => {
       const chunkString = chunk.toString('utf8');
-
-      // Split the chunk by the closing brace '}' to separate JSON objects
-      const jsonObjects = chunkString.split('}').filter(obj => obj.trim() !== '');
-
-      jsonObjects.forEach(jsonObject => {
-        try {
-          // Parse each potential JSON object
-          const data = JSON.parse(jsonObject + '}'); // Add back the closing brace
-
-          if (data.detail && data.detail.choices && data.detail.choices[0].delta.content) {
-            fullReply += data.detail.choices[0].delta.content;
-          }
-        } catch (error) {
-          // Handle potential parsing errors for incomplete chunks
-          console.error("JSON Parsing Error:", error); 
+      // Since each chunk is a valid JSON, we can directly parse it
+      try {
+        const data = JSON.parse(chunkString);
+        if (data.text) { // Check if the 'text' property exists
+          fullReply = data.text; // Update fullReply with the latest text
         }
-      });
+      } catch (error) {
+        console.error("JSON Parsing Error:", error, chunkString); // Log error with the chunk
+      }
     });
 
     response.data.on('end', () => {
