@@ -239,6 +239,7 @@ app.post('/chat/v6', async (req, res) => {
 
   const apiUrl = 'https://cheatgpt.app/message';
   const headers = {
+            'Connection': 'keep-alive',
             'Content-Type': 'application/json',
             'accept': '*/*',
             'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
