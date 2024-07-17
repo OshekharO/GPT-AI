@@ -237,7 +237,7 @@ app.post('/chat/v5', async (req, res) => {
 app.post('/chat/v6', async (req, res) => {
   const { userMessage } = req.body;
 
-  const apiUrl = 'https://cheatgpt.app/message';
+  const apiUrl = 'https://proxy.techzbots1.workers.dev/?u=https://cheatgpt.app/message';
   const headers = {
     'Content-Type': 'application/json',
     'accept': '*/*',
