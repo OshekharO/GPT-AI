@@ -254,7 +254,7 @@ app.post('/chat/v6', async (req, res) => {
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers, timeout: 30000 }); // Reduce timeout value to 30 seconds
+    const response = await axios.post(apiUrl, body, { headers, timeout: 30000 });
     res.json(response.data);
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
