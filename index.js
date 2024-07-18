@@ -390,6 +390,7 @@ app.post('/chat/v9', async (req, res) => {
   const apiUrl = 'https://chat.freedomgpt.com/api/gemini';
   const headers = {
             'content-type': 'application/json',
+            // need to change authorization key frequently
             'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImMxNTQwYWM3MWJiOTJhYTA2OTNjODI3MTkwYWNhYmU1YjA1NWNiZWMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiU2Frc2hhbSBTaGVraGVyIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0laVGJCWjdpcEs4aWFubktBSGNfem9zOVdYOU1tVVVNdG9YeG9XY0JteXd4U251cTNuPXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZyZWVkb20tZ3B0IiwiYXVkIjoiZnJlZWRvbS1ncHQiLCJhdXRoX3RpbWUiOjE3MjEyNzU1NTcsInVzZXJfaWQiOiJqUEhxVlYxbG9BWHhDeTlXdmdzMDNWc0lrZ2oxIiwic3ViIjoialBIcVZWMWxvQVh4Q3k5V3ZnczAzVnNJa2dqMSIsImlhdCI6MTcyMTI4NzA5NCwiZXhwIjoxNzIxMjkwNjk0LCJlbWFpbCI6Im9tZWVwZDAwOUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI5Nzk5ODcxOTEyMDIwMzc5NiJdLCJlbWFpbCI6WyJvbWVlcGQwMDlAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.lWO8Gs1fdwmgA0Umb-x-b1f0rLfSErBghF_0TVn3WG3Yv77uDQB2UyOZ5U8JT6f_NYKjIkC6g-Rbg37RPKiByxwWWgLjv7DLctGsOeGFNGBcQCzcidOz_M3kvkN8y8Z5798EtN2-drXp0wpZXfhbM_YfHGVwz31guR7YER09wHYaR8WU5zkpfaVwyJbrsMKP-XdgI5h-oB7tglVAguoRs1ZI5GiO5qIt6e0vKOlMwpyYDgZoYDLEPbqp-NR_-8x__WJbAbLsv7ieSj2PAwjG5_4Tp6sPNp1q4n3wLJUoWSOBgxzkVOxowaqdxoaiMOpTvx1KMoSFUrTsyyYyGHJ-xA',
             'referer': 'https://chat.freedomgpt.com/',
             'origin': 'https://chat.freedomgpt.com'
