@@ -369,12 +369,7 @@ app.post('/chat/v8', async (req, res) => {
   ];
 
   try {
-    const response = await axios.post(apiUrl, body, {
-      headers: headers,
-      params: {
-        prompt: userMessage.substring(0, 20)
-      }
-    });
+    const response = await axios.post(apiUrl, body, { headers });
 
     if (response.data && response.data.result && response.data.result.content) {
       res.json({ reply: response.data.result.content });
