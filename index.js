@@ -383,6 +383,61 @@ app.post('/chat/v8', async (req, res) => {
   }
 });
 
+// API Route v9 - freedomgpt.com
+app.post('/chat/v9', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://chat.freedomgpt.com/api/gemini';
+  const headers = {
+            'content-type': 'application/json',
+            'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImMxNTQwYWM3MWJiOTJhYTA2OTNjODI3MTkwYWNhYmU1YjA1NWNiZWMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiU2Frc2hhbSBTaGVraGVyIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0laVGJCWjdpcEs4aWFubktBSGNfem9zOVdYOU1tVVVNdG9YeG9XY0JteXd4U251cTNuPXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZyZWVkb20tZ3B0IiwiYXVkIjoiZnJlZWRvbS1ncHQiLCJhdXRoX3RpbWUiOjE3MjEyNzU1NTcsInVzZXJfaWQiOiJqUEhxVlYxbG9BWHhDeTlXdmdzMDNWc0lrZ2oxIiwic3ViIjoialBIcVZWMWxvQVh4Q3k5V3ZnczAzVnNJa2dqMSIsImlhdCI6MTcyMTI4NzA5NCwiZXhwIjoxNzIxMjkwNjk0LCJlbWFpbCI6Im9tZWVwZDAwOUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI5Nzk5ODcxOTEyMDIwMzc5NiJdLCJlbWFpbCI6WyJvbWVlcGQwMDlAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.lWO8Gs1fdwmgA0Umb-x-b1f0rLfSErBghF_0TVn3WG3Yv77uDQB2UyOZ5U8JT6f_NYKjIkC6g-Rbg37RPKiByxwWWgLjv7DLctGsOeGFNGBcQCzcidOz_M3kvkN8y8Z5798EtN2-drXp0wpZXfhbM_YfHGVwz31guR7YER09wHYaR8WU5zkpfaVwyJbrsMKP-XdgI5h-oB7tglVAguoRs1ZI5GiO5qIt6e0vKOlMwpyYDgZoYDLEPbqp-NR_-8x__WJbAbLsv7ieSj2PAwjG5_4Tp6sPNp1q4n3wLJUoWSOBgxzkVOxowaqdxoaiMOpTvx1KMoSFUrTsyyYyGHJ-xA',
+            'referer': 'https://chat.freedomgpt.com/',
+            'origin': 'https://chat.freedomgpt.com'
+        };
+  const body = {
+  "model": {
+    "defaultSummaryPrompt": "You are an expert in summarizing chat transcripts.\n      Your goal is to create a summary of the transcript.\n\n      Below you find the transcript of the chat:\n      --------\n      {transcript}\n      --------\n\n      Total output will be a summary of the transcript.",
+    "type": [
+      "text"
+    ],
+    "enabled": true,
+    "description": "Google Gemini Pro",
+    "defaultPrompt": "Follow the user's instructions carefully.",
+    "endpoint": "api/gemini",
+    "hasInfiniteMode": true,
+    "isNew": false,
+    "tokenLimit": 4000,
+    "maxLength": 12000,
+    "firstMessageCost": 8,
+    "name": "Google Gemini",
+    "inputCost": 0.002,
+    "image": "https://firebasestorage.googleapis.com/v0/b/freedom-gpt.appspot.com/o/000freedomgpt_models%2F5f112c652762100f2cd30c6ea6282c76.png?alt=media&token=2f83df23-e173-40c1-8f62-149a37c31170&_gl=1*17qwr7d*_ga*MTEzMTE1OTY3LjE2Nzc1MjI4MDE.*_ga_CW55HF8NVT*MTY5OTM4OTM4MC40MjkuMS4xNjk5Mzg5MzkyLjQ4LjAuMA..",
+    "hasSettings": true,
+    "tags": [
+      "all"
+    ],
+    "outputCost": 0.004,
+    "id": "gemini"
+  },
+  "prompt": "Follow the user's instructions carefully.",
+  "question": userMessage,
+  "messages": [
+    {
+      "role": "user",
+      "content": userMessage
+    }
+  ]
+};
+
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    res.json(response.data);
+  } catch (error) {
+    console.error(error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Something went wrong with authorization key' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
