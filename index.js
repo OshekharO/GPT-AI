@@ -288,7 +288,7 @@ app.post('/chat/v6', async (req, res) => {
 async function getVqdValue() {
   try {
     const response = await axios.get('https://duckduckgo.com/chat');
-    const vqdMatch = response.data.match(/vqd='(.*?)'/);
+    const vqdMatch = response.data.match(/vqd=(\d+-\d+)/);
     return vqdMatch ? vqdMatch[1] : null;
   } catch (error) {
     console.error("Error fetching vqd:", error);
