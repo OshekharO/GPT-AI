@@ -346,6 +346,48 @@ app.post('/chat/v7', async (req, res) => {
   }
 });
 
+// API Route v8 - GeminiGPTAI
+app.post('/chat/v8', async (req, res) => {
+  const { userMessage } = req.body;
+  const apiUrl = 'https://geminigptai.com/api';
+
+  const headers = {
+    'Content-Type': 'text/plain;charset=UTF-8',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+    'Origin': 'https://geminigptai.com',
+    'Referer': 'https://geminigptai.com/chat',
+    'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+    'sec-ch-ua-mobile': '?1',
+    'sec-ch-ua-platform': '"Android"'
+  };
+
+  const body = [
+    {
+      "content": userMessage,
+      "role": "user"
+    }
+  ];
+
+  try {
+    const response = await axios.post(apiUrl, body, {
+      headers: headers,
+      params: {
+        prompt: userMessage.substring(0, 20)
+      }
+    });
+
+    if (response.data && response.data.result && response.data.result.content) {
+      res.json({ reply: response.data.result.content });
+    } else {
+      throw new Error('Unexpected response structure');
+    }
+
+  } catch (error) {
+    console.error("API Request Error:", error);
+    res.status(500).json({ error: 'Something went wrong with API v8' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
