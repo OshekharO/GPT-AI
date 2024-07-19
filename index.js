@@ -474,6 +474,56 @@ app.post('/chat/v10', async (req, res) => {
   }
 });
 
+// API Route v11 - gpt4o.so
+app.post('/chat/v11', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://finechatserver.erweima.ai/api/v1/gpt4o/gpt35';
+  const headers = {
+    'Content-Type': 'application/json',
+    'uniqueid': '9778f3a204b5c7f03fb1662af1a65e32',
+    'origin': 'https://gpt4o.so',
+    'referer': 'https://gpt4o.so/'
+  };
+  const body = {
+    "prompt": userMessage,
+    "conversationId": "2b0183563c827bdfa511103bd888bdba"
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { 
+      headers,
+      responseType: 'stream'
+    });
+
+    let fullReply = '';
+
+    response.data.on('data', (chunk) => {
+      const lines = chunk.toString().split('\n');
+      lines.forEach(line => {
+        if (line.trim() !== '' && line.trim() !== '[DONE]') {
+          try {
+            const parsedData = JSON.parse(line);
+            if (parsedData.data && parsedData.data.content) {
+              fullReply += parsedData.data.content;
+            }
+          } catch (error) {
+            console.error("Error parsing chunk:", error);
+          }
+        }
+      });
+    });
+
+    response.data.on('end', () => {
+      res.json({ reply: fullReply.trim() });
+    });
+
+  } catch (error) {
+    console.error("API Request Error:", error);
+    res.status(500).json({ error: 'Something went wrong with API v11' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
