@@ -545,7 +545,8 @@ app.post('/chat/v12', async (req, res) => {
   
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json(response.data);
+    let replyText = response.data;
+    res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Something went wrong with API v12 (clouflare)' });
