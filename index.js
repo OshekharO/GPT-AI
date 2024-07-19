@@ -91,20 +91,10 @@ app.post('/chat/v2', async (req, res) => {
 
   const apiUrl = 'https://gpt4login.com/wp-admin/admin-ajax.php';
   const headers = {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Origin': 'https://gpt4login.com',
-            '_gid': 'GA1.2.580936514.1720892371',
-            '_gat_gtag_UA_265197079_1': '1',
-            '_ga_W925DX246W': 'GS1.1.1720892371.1.0.1720892371.0.0.0',
-            '_ga': 'GA1.1.2083846270.1720892371',
-            '_utmz': '1.1720892371.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided)',
-            '__gads': 'ID=178d31514647a4c6:T=1720892371:RT=1720892371:S=ALNI_MYCflfiXBU1CrRgHFVKVDTRAahzWw',
-            '__gpi': 'UID=00000e8ff7f8cced:T=1720892371:RT=1720892371:S=ALNI_MZekr5ROZjTxvcX3EQoHTfDCkM57w',
-            '_fbp': 'fb.1.1720892371182.1313744528',
-            '_eoi': 'ID=cb0d1f51ff419903:T=1720892371:RT=1720892371:S=AA-AfjYM6fsP6Ws6mjD_b10s-rbe',
-            'FCNEC': '%5B%5B%22AKsRol-u8Q4eBXRqLcdljA6Q1pYefHaXOEuEXP0lfrZxIMoF3weziUX9CXTMxhBpFxet1slsQlB-rMmHb42zu7o38r-L6L0uO4jkvt__7jVMNu8iVf5mDKkBx5tbsoM-E2OLTJVtXIiS7RqlwIFZyRFOhjm2Mhr3cg%3D%3D%22%5D%5D',
-            'PHPSESSID': 'd8f90c2b4d659feacfe18e2eeabba60b'
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'x-requested-with': 'XMLHttpRequest',
+            'origin': 'https://gpt4login.com',
+            'referer': 'https://gpt4login.com/use-chatgpt-online-free/'
         };
   const body = new URLSearchParams({
     action: 'chatbot_chatgpt_send_message',
@@ -118,7 +108,7 @@ app.post('/chat/v2', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(500).json({ error: 'Something went wrong with API v2' });
   }
 });
 
