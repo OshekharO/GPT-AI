@@ -147,7 +147,7 @@ app.post('/chat/v9', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Something went wrong with authorization key' });
+    res.status(500).json({ error: 'Something went wrong with API v3' });
   }
 });
 
