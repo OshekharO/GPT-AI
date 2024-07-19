@@ -113,7 +113,7 @@ app.post('/chat/v2', async (req, res) => {
 });
 
 // API Route v3 - chateverywhere.app
-app.post('/chat/v9', async (req, res) => {
+app.post('/chat/v3', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://chateverywhere.app/api/chat';
