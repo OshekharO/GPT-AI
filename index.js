@@ -291,11 +291,12 @@ app.post('/chat/v7', async (req, res) => {
   const apiUrl = 'https://www.pinoygpt.com/wp-json/mwai-ui/v1/chats/submit';
 
   const headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'x-wp-nonce': '8710214b91', // Note: This value might need to be obtained dynamically
-    'Origin': 'https://www.pinoygpt.com',
-    'Referer': 'https://www.pinoygpt.com/',
+    'content-type': 'application/json',
+    'accept': 'text/event-stream',
+    'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+    'x-wp-nonce': '7e96a748c7', // Note: This value need to be obtained dynamically
+    'origin': 'https://www.pinoygpt.com',
+    'referer': 'https://www.pinoygpt.com/',
     'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
     'sec-ch-ua-mobile': '?1',
     'sec-ch-ua-platform': '"Android"'
@@ -391,7 +392,7 @@ app.post('/chat/v9', async (req, res) => {
   const headers = {
             'content-type': 'application/json',
             // need to change authorization key frequently
-            'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImMxNTQwYWM3MWJiOTJhYTA2OTNjODI3MTkwYWNhYmU1YjA1NWNiZWMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiU2Frc2hhbSBTaGVraGVyIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0laVGJCWjdpcEs4aWFubktBSGNfem9zOVdYOU1tVVVNdG9YeG9XY0JteXd4U251cTNuPXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZyZWVkb20tZ3B0IiwiYXVkIjoiZnJlZWRvbS1ncHQiLCJhdXRoX3RpbWUiOjE3MjEyNzU1NTcsInVzZXJfaWQiOiJqUEhxVlYxbG9BWHhDeTlXdmdzMDNWc0lrZ2oxIiwic3ViIjoialBIcVZWMWxvQVh4Q3k5V3ZnczAzVnNJa2dqMSIsImlhdCI6MTcyMTI4NzA5NCwiZXhwIjoxNzIxMjkwNjk0LCJlbWFpbCI6Im9tZWVwZDAwOUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI5Nzk5ODcxOTEyMDIwMzc5NiJdLCJlbWFpbCI6WyJvbWVlcGQwMDlAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.lWO8Gs1fdwmgA0Umb-x-b1f0rLfSErBghF_0TVn3WG3Yv77uDQB2UyOZ5U8JT6f_NYKjIkC6g-Rbg37RPKiByxwWWgLjv7DLctGsOeGFNGBcQCzcidOz_M3kvkN8y8Z5798EtN2-drXp0wpZXfhbM_YfHGVwz31guR7YER09wHYaR8WU5zkpfaVwyJbrsMKP-XdgI5h-oB7tglVAguoRs1ZI5GiO5qIt6e0vKOlMwpyYDgZoYDLEPbqp-NR_-8x__WJbAbLsv7ieSj2PAwjG5_4Tp6sPNp1q4n3wLJUoWSOBgxzkVOxowaqdxoaiMOpTvx1KMoSFUrTsyyYyGHJ-xA',
+            'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImMxNTQwYWM3MWJiOTJhYTA2OTNjODI3MTkwYWNhYmU1YjA1NWNiZWMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiU2Frc2hhbSBTaGVraGVyIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0laVGJCWjdpcEs4aWFubktBSGNfem9zOVdYOU1tVVVNdG9YeG9XY0JteXd4U251cTNuPXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZyZWVkb20tZ3B0IiwiYXVkIjoiZnJlZWRvbS1ncHQiLCJhdXRoX3RpbWUiOjE3MjEyNzU1NTcsInVzZXJfaWQiOiJqUEhxVlYxbG9BWHhDeTlXdmdzMDNWc0lrZ2oxIiwic3ViIjoialBIcVZWMWxvQVh4Q3k5V3ZnczAzVnNJa2dqMSIsImlhdCI6MTcyMTM1NDUwNCwiZXhwIjoxNzIxMzU4MTA0LCJlbWFpbCI6Im9tZWVwZDAwOUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI5Nzk5ODcxOTEyMDIwMzc5NiJdLCJlbWFpbCI6WyJvbWVlcGQwMDlAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.hqArMQbO5GGrmRdGNB7sCHAApT4smVcyRQTHD1cCf1OvdRbqezOXePUutval4bH298pYaj1s1xelWUGmO1TpMxxu--tEBqUzMoBOARFrFU2rrN48ElYo9NZD6vtkEgpRnEMIWliMj7WklS6ih9eTwH5Tzp3EDVQZ9iAuWtVqe2tlrLSFsBu6hfT86yyWiTFKu8tdrM-rTP0ieCJ_TuqIElxwvoV78SBPr9NFOTw4WEz80vpXIcs3-joam34npNOa__xzlvJOoW6GZHbmKvZUodsxP7_6zmDKL0bNxIAlvfsj83PQg1-gJ5KLwEeHCxGvwpWDQHCUVTNIIb7NIZKtsQ',
             'referer': 'https://chat.freedomgpt.com/',
             'origin': 'https://chat.freedomgpt.com'
         };
