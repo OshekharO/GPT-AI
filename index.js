@@ -105,7 +105,8 @@ app.post('/chat/v2', async (req, res) => {
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json(response.data);
+    let replyText = response.data;
+    res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Something went wrong with API v2' });
@@ -144,7 +145,8 @@ app.post('/chat/v3', async (req, res) => {
   
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json(response.data);
+    let replyText = response.data;
+    res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Something went wrong with API v3' });
@@ -438,7 +440,8 @@ app.post('/chat/v9', async (req, res) => {
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json(response.data);
+    let replyText = response.data;
+    res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Something went wrong with authorization key' });
