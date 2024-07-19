@@ -112,28 +112,43 @@ app.post('/chat/v2', async (req, res) => {
   }
 });
 
-// API Route v3 - Custom GPT-3.5-turbo API 
-app.post('/chat/v3', async (req, res) => {
-    const { userMessage } = req.body;
+// API Route v3 - chateverywhere.app
+app.post('/chat/v9', async (req, res) => {
+  const { userMessage } = req.body;
 
-    const baseURL = `https://proxy.techzbots1.workers.dev/?u=https://chatgpt.apinepdev.workers.dev/?question=`; 
-    const url = `${baseURL}${encodeURIComponent(userMessage)}`;
-
-    try {
-        const response = await axios.get(url, {
-            headers: {
-                "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            },
-        });
-
-        const aiResponse = response.data.answer; // Access the 'answer' property from the response
-        res.json({ reply: aiResponse }); 
-
-    } catch (error) {
-        console.error("Error sending message to API v3:", error);
-        res.status(500).json({ error: 'Something went wrong with API v3' });
+  const apiUrl = 'https://chateverywhere.app/api/chat';
+  const headers = {
+            'origin': 'https://chateverywhere.app',
+            'referer': 'https://chateverywhere.app/'
+        };
+  const body = {
+  "model": {
+    "id": "gpt-3.5-turbo",
+    "name": "GPT-3.5",
+    "maxLength": 12000,
+    "tokenLimit": 4000,
+    "completionTokenLimit": 2500,
+    "deploymentName": "gpt-35"
+  },
+  "messages": [
+    {
+      "pluginId": null,
+      "content": userMessage,
+      "fileList": [],
+      "role": "user"
     }
+  ],
+  "prompt": "You are an AI language model named Chat Everywhere, designed to answer user questions as accurately and helpfully as possible. Always be aware of the current date and time, and make sure to generate responses in the exact same language as the user's query. Adapt your responses to match the user's input language and context, maintaining an informative and supportive communication style. Additionally, format all responses using Markdown syntax, regardless of the input format.If the input includes text such as [lang=xxx], the response should not include this text.The current date is 7/19/2024.",
+  "temperature": 0.5
+};
+  
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    res.json(response.data);
+  } catch (error) {
+    console.error(error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Something went wrong with authorization key' });
+  }
 });
 
 // API Route v4 - aichatonlineorg.erweima.ai (Streaming)
