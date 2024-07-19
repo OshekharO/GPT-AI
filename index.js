@@ -451,17 +451,23 @@ app.post('/chat/v10', async (req, res) => {
 
   const apiUrl = 'https://www.chatwithfiction.com/api/gpt';
   const headers = {            
-            'referer': 'https://www.chatwithfiction.com/chat',
-            'origin': 'https://www.chatwithfiction.com'
-        };
+    'referer': 'https://www.chatwithfiction.com/chat',
+    'origin': 'https://www.chatwithfiction.com'
+  };
   const body = {
-  "prompt": userMessage,
-  "prev": null
+    "prompt": userMessage,
+    "prev": null
   };
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    res.json(response.data);
+
+    let replyText = response.data;
+    if (typeof replyText === 'string') {
+      replyText = replyText.replace(/^"|"$/g, '');
+    }
+
+    res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Something went wrong with csrf token maybe' });
