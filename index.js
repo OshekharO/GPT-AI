@@ -105,7 +105,7 @@ app.post('/chat/v2', async (req, res) => {
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    let replyText = response.data;
+    let replyText = response.data.data;
     res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
