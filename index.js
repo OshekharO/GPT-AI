@@ -445,6 +445,29 @@ app.post('/chat/v9', async (req, res) => {
   }
 });
 
+// API Route v10 - chatwithfiction.com
+app.post('/chat/v10', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://www.chatwithfiction.com/api/gpt';
+  const headers = {            
+            'referer': 'https://www.chatwithfiction.com/chat',
+            'origin': 'https://www.chatwithfiction.com'
+        };
+  const body = {
+  "prompt": userMessage,
+  "prev": null
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    res.json(response.data);
+  } catch (error) {
+    console.error(error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Something went wrong with csrf token maybe' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
