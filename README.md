@@ -13,7 +13,7 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ## 🌟 Features
 
-- Seamless integration of multiple chatbot APIs (v1 to v5)
+- Seamless integration of multiple chatbot APIs (v1 to v9)
 - Built with Express.js for robust server-side operations
 - Cross-Origin Resource Sharing (CORS) enabled for web application compatibility
 - Straightforward error handling for improved debugging
