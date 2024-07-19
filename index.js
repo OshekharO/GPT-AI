@@ -524,6 +524,34 @@ app.post('/chat/v11', async (req, res) => {
   }
 });
 
+// API Route v12 - bookai.chat
+app.post('/chat/v12', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://api.bookai.chat:2096/chat';
+  const headers = {
+            'Content-Type': 'application/json',
+            'origin': 'https://www.bookai.chat',
+            'referer': 'https://www.bookai.chat/'
+        };
+  const body = {
+  "chatId": "test-cleancode",
+  "question": userMessage,
+  "language": "English",
+  "model": "gpt-3.5-turbo",
+  "init": false,
+  "messages": []
+  };
+  
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    res.json(response.data);
+  } catch (error) {
+    console.error(error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Something went wrong with API v12 (clouflare)' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
