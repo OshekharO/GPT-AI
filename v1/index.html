@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chat Interface</title>
+    <link rel="stylesheet" href="style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Google Fonts Link For Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+      /* Import Google font - Poppins */
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+
+      :root {
+        --text-color: #ffffff;
+        --icon-color: #acacbe;
+        --icon-hover-bg: #5b5e71;
+        --placeholder-color: #dcdcdc;
+        --outgoing-chat-bg: #343541;
+        --incoming-chat-bg: #444654;
+        --outgoing-chat-border: #343541;
+        --incoming-chat-border: #444654;
+      }
+
+      .light-mode {
+        --text-color: #343541;
+        --icon-color: #a9a9bc;
+        --icon-hover-bg: #f1f1f3;
+        --placeholder-color: #6c6c6c;
+        --outgoing-chat-bg: #ffffff;
+        --incoming-chat-bg: #f7f7f8;
+        --outgoing-chat-border: #ffffff;
+        --incoming-chat-border: #d9d9e3;
+      }
+
+      body {
+        background: var(--outgoing-chat-bg);
+      }
+
+      .message {
+        padding: 8px 16px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+      }
+
+      .user {
+        background-color: #cccccc; /* Gray background for user message */
+        color: #ffffff; /* White text color for user message */
+        align-self: flex-start;
+      }
+
+      .bot {
+        background-color: #4caf50; /* Green background for bot message */
+        color: #ffffff; /* White text color for bot message */
+        align-self: flex-end;
+      }
+
+      /* Chats container styling */
+      .chat-container {
+        overflow-y: auto;
+        max-height: 100vh;
+        padding-bottom: 150px;
+      }
+
+      .chat-container::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .chat-container::-webkit-scrollbar-track {
+        background: var(--incoming-chat-bg);
+        border-radius: 25px;
+      }
+
+      .chat-container::-webkit-scrollbar-thumb {
+        background: var(--icon-color);
+        border-radius: 25px;
+      }
+
+      /* Typing container styling */
+      .typing-container {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        display: flex;
+        padding: 10px 10px;
+        justify-content: center;
+        background: var(--outgoing-chat-bg);
+        border-top: 1px solid var(--incoming-chat-border);
+      }
+
+      .typing-container .typing-content {
+        display: flex;
+        max-width: 950px;
+        width: 100%;
+        align-items: flex-end;
+      }
+
+      .typing-container .typing-textarea {
+        width: 100%;
+        display: flex;
+        position: relative;
+      }
+
+      .typing-textarea textarea {
+        resize: none;
+        height: 55px;
+        width: 100%;
+        border: none;
+        padding: 15px 45px 15px 20px;
+        color: var(--text-color);
+        font-size: 1rem;
+        border-radius: 4px;
+        max-height: 250px;
+        overflow-y: auto;
+        background: var(--incoming-chat-bg);
+        outline: 1px solid var(--incoming-chat-border);
+      }
+
+      .typing-textarea textarea::placeholder {
+        color: var(--placeholder-color);
+      }
+
+      .typing-content span {
+        width: 55px;
+        height: 55px;
+        display: flex;
+        border-radius: 4px;
+        font-size: 1.35rem;
+        align-items: center;
+        justify-content: center;
+        color: var(--icon-color);
+      }
+
+      .typing-textarea span {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        visibility: hidden;
+      }
+
+      .typing-textarea textarea:valid ~ span {
+        visibility: visible;
+      }
+
+      .typing-controls {
+        display: flex;
+      }
+
+      .typing-controls span {
+        margin-left: 7px;
+        font-size: 1.4rem;
+        background: var(--incoming-chat-bg);
+        outline: 1px solid var(--incoming-chat-border);
+      }
+
+      .typing-controls span:hover {
+        background: var(--icon-hover-bg);
+      }
+
+      /* Send button styling */
+      .typing-textarea #send-btn {
+        position: absolute;
+        right: 10px;
+        bottom: 40%;
+        transform: translateY(50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 45px;
+        height: 45px;
+        border-radius: 4px;
+        font-size: 1.35rem;
+        color: var(--icon-color);
+        background: var(--incoming-chat-bg);
+        outline: 1px solid var(--incoming-chat-border);
+        cursor: pointer;
+      }
+
+      .typing-textarea #send-btn:hover {
+        background: var(--icon-hover-bg);
+      }
+
+      .input-box {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      #engine-select {
+        width: 55px;
+        height: 55px;
+        margin-right: 10px;
+        padding: 8px 12px;
+        border: 1px solid var(--incoming-chat-border);
+        border-radius: 4px;
+        background-color: var(--incoming-chat-bg);
+        color: var(--text-color);
+        font-size: 1rem;
+        appearance: none;
+        outline: none;
+        cursor: pointer;
+      }
+
+      #engine-select option {
+        background-color: var(--incoming-chat-bg);
+        color: var(--text-color);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Chats container -->
+    <div class="chat-container"></div>
+
+    <!-- Typing container -->
+    <div class="typing-container">
+      <div class="typing-content">
+        <div class="typing-textarea">
+          <form class="input-box" method="get" action="">
+            <select id="engine-select">
+              <option value="v1">v1</option>
+              <option value="v2">v2</option>
+              <option value="v3">v3</option>
+              <option value="v4">v4</option>
+              <option value="v5">v5</option>
+              <option value="v6">v6</option>
+              <option value="v7">v7</option>
+              <option value="v8">v8</option>
+              <option value="v9">v9</option>
+            </select>
+            <textarea id="chat-input" spellcheck="false" placeholder="prompt" required></textarea>
+          </form>
+        </div>
+        <div class="typing-controls">
+          <span id="send-btn" class="material-symbols-rounded">send</span>
+          <span id="theme-btn" class="material-symbols-rounded">light_mode</span>
+        </div>
+      </div>
+    </div>
+    <script>
+      let isLightMode = false;
+
+      function toggleTheme() {
+        const body = document.body;
+        const themeButton = document.getElementById("theme-btn");
+
+        if (isLightMode) {
+          body.classList.remove("light-mode");
+          themeButton.innerHTML = "dark_mode";
+        } else {
+          body.classList.add("light-mode");
+          themeButton.innerHTML = "light_mode";
+        }
+
+        isLightMode = !isLightMode;
+      }
+
+      async function create(prompt, apiVersion) {
+        const url = `https://gpt-ai-topaz.vercel.app/chat/${apiVersion}`;
+
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userMessage: prompt }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.reply;
+        } catch (error) {
+          console.error("Error:", error);
+          return "Sorry, there was an error processing your request.";
+        }
+      }
+
+      async function sendMessage() {
+        let prompt = document.getElementById("chat-input").value;
+        let apiVersion = document.getElementById("engine-select").value;
+        let chatContainer = document.querySelector(".chat-container");
+
+        // Create user message element
+        let userMessage = document.createElement("p");
+        userMessage.classList.add("message", "user");
+        userMessage.innerText = "You: " + prompt;
+        chatContainer.appendChild(userMessage);
+
+        // Create bot message element (initially empty)
+        let botMessage = document.createElement("p");
+        botMessage.classList.add("message", "bot");
+        botMessage.innerText = "Bot: ";
+        chatContainer.appendChild(botMessage);
+
+        // Scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Send request and update bot message
+        let resp = await create(prompt, apiVersion);
+        botMessage.innerText += resp;
+
+        // Scroll to bottom again (in case the response was long)
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        document.getElementById("chat-input").value = ""; // Clear the input box
+      }
+
+      document.getElementById("send-btn").addEventListener("click", function () {
+        sendMessage();
+      });
+
+      document.getElementById("chat-input").addEventListener("keyup", function (event) {
+        if (event.keyCode === 13) {
+          sendMessage();
+        }
+      });
+
+      document.getElementById("theme-btn").addEventListener("click", function () {
+        toggleTheme();
+      });
+    </script>
+  </body>
+</html>
