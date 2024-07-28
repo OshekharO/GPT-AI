@@ -301,7 +301,7 @@ app.post('/chat/v7', async (req, res) => {
     'content-type': 'application/json',
     'accept': 'text/event-stream',
     'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'x-wp-nonce': '7e96a748c7', // Note: This value need to be obtained dynamically
+    'x-wp-nonce': '8b145505a4', // Note: This value need to be obtained dynamically
     'origin': 'https://www.pinoygpt.com',
     'referer': 'https://www.pinoygpt.com/',
     'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
