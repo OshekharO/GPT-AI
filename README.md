@@ -4,7 +4,6 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ## 📚 Table of Contents
 - [Features](#-features)
-- [Quick Start](#-quick-start)
 - [API Usage](#-api-usage)
 - [Technologies](#-technologies)
 - [Contributing](#-contributing)
@@ -13,34 +12,10 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ## 🌟 Features
 
-- Seamless integration of multiple chatbot APIs (v1 to v9)
+- Seamless integration of multiple chatbot APIs (v1 to v12)
 - Built with Express.js for robust server-side operations
 - Cross-Origin Resource Sharing (CORS) enabled for web application compatibility
 - Straightforward error handling for improved debugging
-
-## 🚀 Quick Start
-
-1. **Clone the repository**
-   ```
-   git clone https://github.com/OshekharO/GPT-AI.git
-   ```
-
-2. **Navigate to the project directory**
-   ```
-   cd GPT-AI
-   ```
-
-3. **Install dependencies**
-   ```
-   npm install
-   ```
-
-4. **Start the server**
-   ```
-   npm start
-   ```
-
-   The server will launch and be accessible at `http://localhost:3000`.
 
 ## 🔧 API Usage
 
