@@ -260,7 +260,7 @@ app.post('/chat/v7', async (req, res) => {
     'content-type': 'application/json',
     'accept': 'text/event-stream',
     'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'x-wp-nonce': '8b145505a4', // Note: This value need to be obtained dynamically
+    'x-wp-nonce': 'ccbcf22745', // Note: This value need to be obtained dynamically
     'origin': 'https://www.pinoygpt.com',
     'referer': 'https://www.pinoygpt.com/',
     'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
@@ -271,6 +271,7 @@ app.post('/chat/v7', async (req, res) => {
   const body = {
     "botId": "default",
     "customId": "e369e9665e1e4fa3fd0cdc970f31cf12",
+    "session": "N/A",
     "contextId": 12,
     "newMessage": userMessage,
     "newFileId": null,
