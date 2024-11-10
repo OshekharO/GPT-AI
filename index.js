@@ -10,78 +10,37 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// API Route v1 - vtlchat-g1.vercel.app
+// API Route v1 - claude3.free2gpt.xyz
 app.post('/chat/v1', async (req, res) => {
   const { userMessage } = req.body;
 
-  const apiUrl = 'https://vtlchat-g1.vercel.app/api/openai/v1/chat/completions';
+  const apiUrl = 'https://claude3.free2gpt.xyz/api/generate';
   const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json, text/event-stream',
     'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'Origin': 'https://vtlchat-g1.vercel.app',
-    'Referer': 'https://vtlchat-g1.vercel.app/'
+    'Origin': 'https://claude3.free2gpt.xyz',
+    'Referer': 'https://claude3.free2gpt.xyz/'
   };
   const body = {
     "messages": [
-      {
-        "role": "system",
-        "content": "\nYou are ChatGPT, a large language model trained by OpenAI.\nKnowledge cutoff: 2021-09\nCurrent model: gpt-3.5-turbo\nCurrent time: " + new Date().toLocaleString() + "\nLatex inline: $x^2$ \nLatex block: $$e=mc^2$$\n\n"
-      },
       {
         "role": "user",
         "content": userMessage
       }
     ],
-    "stream": true,
-    "model": "gpt-3.5-turbo",
-    "temperature": 0.5,
-    "presence_penalty": 0,
-    "frequency_penalty": 0,
-    "top_p": 1
+    "time": "1731262098849",
+    "pass": null,
+    "sign": "605854f0e678f8ce8e0bde49715636b952f514745393f0b28ec45fa2d145e972"
   };
 
   try {
-    const response = await axios({
-      method: 'post',
-      url: apiUrl,
-      headers: headers,
-      data: body,
-      responseType: 'stream' 
-    });
-
-    let reply = '';
-    let buffer = '';
-
-    response.data.on('data', (chunk) => {
-      buffer += chunk.toString('utf8');
-
-      let lines = buffer.split('\n');
-      buffer = '';
-
-      lines.forEach((line, index) => {
-        if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
-          try {
-            const data = JSON.parse(line.substring(6));
-            if (data.choices && data.choices[0].delta.content) {
-              reply += data.choices[0].delta.content;
-            }
-          } catch (error) {
-            if (index === lines.length - 1) { 
-              buffer = line; 
-            }
-          }
-        }
-      });
-    });
-
-    response.data.on('end', () => {
-      res.json({ reply }); 
-    });
-
+    const response = await axios.post(apiUrl, body, { headers });
+    let replyText = response.data;
+    res.json({ reply: replyText });
   } catch (error) {
-    console.error("API Request Error:", error); // More descriptive error logging
-    res.status(500).json({ error: 'Something went wrong' });
+    console.error(error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Something went wrong with API v1' });
   }
 });
 
