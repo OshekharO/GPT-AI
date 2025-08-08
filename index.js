@@ -11,75 +11,56 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/yoursearch', async (req, res) => {
-  const { userMessage, customPrompt } = req.body;
+app.post('/chat/pizzagpt', async (req, res) => {
+  const { userMessage, model = "gpt-4o-mini", proxy = null } = req.body;
 
-  const apiUrl = 'https://app.yoursearch.ai/api';
+  const apiUrl = 'https://www.pizzagpt.it/api/chatx-completion';
   const headers = {
+    'accept': 'application/json',
+    'accept-language': 'en-US,en;q=0.9',
     'content-type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://app.yoursearch.ai/?q=joo'
+    'origin': 'https://www.pizzagpt.it',
+    'referer': 'https://www.pizzagpt.it/en',
+    'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    'x-secret': 'Marinara'
   };
 
-  const defaultPrompt = `Search term: "{searchTerm}"
-
-Create a summary of the search results in three paragraphs with reference numbers, which you then list numbered at the bottom.
-Include emojis in the summary.
-Be sure to include the reference numbers in the summary.
-Both in the text of the summary and in the reference list, the reference numbers should look like this: "(1)".
-Formulate simple sentences.
-Include blank lines between the paragraphs.
-Do not reply with an introduction, but start directly with the summary.
-Include emojis in the summary.
-
-At the end, write a hint text where I can find search results as a comparison with the above search term with a link to Google search in this format: 
-"See Google results: <Google search link>"
-
-Below that, provide a tip on how I can optimize the search results for my search query.
-
-I show you in which format this should be structured:
-
-\`\`\`
-<Summary of search results with reference numbers>
-
-Sources:
-(1) <URL of the first reference>
-(2) <URL of the second reference>
-
-<Hint text for further search results with Google link>
-<Tip on optimizing the search results>
-\`\`\`
-
-Here are the search results:
-{searchResults}`;
-
   const body = {
-    searchTerm: userMessage,
-    promptTemplate: customPrompt || defaultPrompt,
-    searchParameters: "{}",
-    searchResultTemplate: '[{order}] "{snippet}"\nURL: {link}'
+    question: userMessage
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
+    const config = {
+      headers,
+      ...(proxy && { proxy }) // Only add proxy if provided
+    };
+
+    const response = await axios.post(apiUrl, body, config);
     
-    if (!response.data) {
-      throw new Error('No response data received');
+    const content = response.data.answer?.content || response.data;
+    if (!content) {
+      throw new Error('No content received from PizzaGPT');
     }
 
-    res.json({
-      reply: response.data,
-      search_term: userMessage,
-      format: 'structured_search_results'
+    res.json({ 
+      reply: content,
+      model_used: model,
+      source: 'PizzaGPT'
     });
 
   } catch (error) {
-    console.error('YourSearchAI API Error:', error.response ? error.response.data : error.message);
+    console.error('PizzaGPT API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process search request',
+      error: 'Failed to process PizzaGPT request',
       details: error.response?.data?.message || error.message,
-      attempted_search: userMessage
+      attempted_model: model
     });
   }
 });
