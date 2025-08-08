@@ -11,45 +11,59 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/chataibot', async (req, res) => {
-  const { userMessage, messages = [], ...rest } = req.body;
+app.post('/chat/darkai', async (req, res) => {
+  const { userMessage } = req.body;
+  
+  const AVAILABLE_MODELS = ["llama-3-70b", "llama-3-405b", "gpt-3.5-turbo", "gpt-4o"];
+  const selectedModel = AVAILABLE_MODELS[Math.floor(Math.random() * AVAILABLE_MODELS.length)];
 
-  const apiUrl = 'https://chataibot.ru/api/promo-chat/messages';
+  const apiUrl = 'https://darkai.foundation/chat';
   const headers = {
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'Accept-Language': 'ru',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://chataibot.ru/app/free-chat'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0'
   };
-
-  // Prepare messages array
-  let messagesToSend = messages.length ? [...messages] : [];
-  messagesToSend.push({
-    role: "user",
-    content: userMessage
-  });
-
   const body = {
-    messages: messagesToSend,
-    ...rest
+    query: userMessage,
+    model: selectedModel
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { 
-      headers,
-      compress: true
-    });
-
-    if (!response.data?.answer) {
-      throw new Error('No answer received from Chataibot');
+    const response = await axios.post(apiUrl, body, { headers });
+    
+    if (!response.data) {
+      throw new Error('No response data received');
     }
 
-    res.json({ reply: response.data.answer });
+    // Extract data from stream if needed
+    const extractData = (input) => {
+      if (typeof input !== 'string') return input;
+      return input.split("\n")
+        .filter(line => line.startsWith("data: "))
+        .map(line => {
+          try {
+            const json = JSON.parse(line.substring(6).trim());
+            if (json.event === "stream-end") return "";
+            if (json.event === "final-response") return json.data.message || "";
+            return "";
+          } catch {
+            return "";
+          }
+        }).join("").trim();
+    };
+
+    const reply = extractData(response.data);
+    
+    res.json({ 
+      reply: reply,
+      model_used: selectedModel 
+    });
 
   } catch (error) {
-    console.error('Chataibot API Error:', error.response ? error.response.data : error.message);
+    console.error('DarkAI API Error:', error.response ? error.response.data : error.message);
     res.status(500).json({ 
-      error: error.response?.data?.message || 'Something went wrong with Chataibot API' 
+      error: error.response?.data?.message || 'Something went wrong with DarkAI API',
+      attempted_model: selectedModel
     });
   }
 });
@@ -433,6 +447,50 @@ app.post('/chat/v9', async (req, res) => {
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Something went wrong with API v12 (clouflare)' });
+  }
+});
+
+// API Route v10
+app.post('/chat/v10', async (req, res) => {
+  const { userMessage, messages = [], ...rest } = req.body;
+
+  const apiUrl = 'https://chataibot.ru/api/promo-chat/messages';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept-Language': 'ru',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://chataibot.ru/app/free-chat'
+  };
+
+  // Prepare messages array
+  let messagesToSend = messages.length ? [...messages] : [];
+  messagesToSend.push({
+    role: "user",
+    content: userMessage
+  });
+
+  const body = {
+    messages: messagesToSend,
+    ...rest
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { 
+      headers,
+      compress: true
+    });
+
+    if (!response.data?.answer) {
+      throw new Error('No answer received from Chataibot');
+    }
+
+    res.json({ reply: response.data.answer });
+
+  } catch (error) {
+    console.error('Chataibot API Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({ 
+      error: error.response?.data?.message || 'Something went wrong with Chataibot API' 
+    });
   }
 });
 
