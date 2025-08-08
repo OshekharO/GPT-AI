@@ -10,8 +10,8 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// test
-app.post('/chat/biblegpt', async (req, res) => {
+// API Route v1 - AyGemuy wudyver
+app.post('/chat/v1', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://biblegpt.prasetia.me/api/generate';
@@ -53,8 +53,8 @@ app.post('/chat/biblegpt', async (req, res) => {
   }
 });
 
-// working 
-app.post('/chat/anshari', async (req, res) => {
+// API Route v2 - AyGemuy wudyver
+app.post('/chat/v2', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://api.ansari.chat/api/v1/complete';
@@ -88,68 +88,6 @@ app.post('/chat/anshari', async (req, res) => {
     res.status(500).json({ 
       error: error.response?.data?.message || 'Something went wrong with Anshari API' 
     });
-  }
-});
-
-// API Route v1 - claude3.free2gpt.xyz
-app.post('/chat/v1', async (req, res) => {
-  const { userMessage } = req.body;
-
-  const apiUrl = 'https://claude3.free2gpt.xyz/api/generate';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json, text/event-stream',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'Origin': 'https://claude3.free2gpt.xyz',
-    'Referer': 'https://claude3.free2gpt.xyz/'
-  };
-  const body = {
-    "messages": [
-      {
-        "role": "user",
-        "content": userMessage
-      }
-    ],
-    "time": "1731262098849",
-    "pass": null,
-    "sign": "605854f0e678f8ce8e0bde49715636b952f514745393f0b28ec45fa2d145e972"
-  };
-
-  try {
-    const response = await axios.post(apiUrl, body, { headers });
-    let replyText = response.data;
-    res.json({ reply: replyText });
-  } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Something went wrong with API v1' });
-  }
-});
-
-// API Route v2 - gpt4login.com
-app.post('/chat/v2', async (req, res) => {
-  const { userMessage } = req.body;
-
-  const apiUrl = 'https://gpt4login.com/wp-admin/admin-ajax.php';
-  const headers = {
-            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'x-requested-with': 'XMLHttpRequest',
-            'origin': 'https://gpt4login.com',
-            'referer': 'https://gpt4login.com/use-chatgpt-online-free/'
-        };
-  const body = new URLSearchParams({
-    action: 'chatbot_chatgpt_send_message',
-    message: userMessage,
-    user_id: '0',
-    page_id: '27'
-  });
-
-  try {
-    const response = await axios.post(apiUrl, body, { headers });
-    let replyText = response.data.data;
-    res.json({ reply: replyText });
-  } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Something went wrong with API v2' });
   }
 });
 
@@ -193,64 +131,8 @@ app.post('/chat/v3', async (req, res) => {
   }
 });
 
-// API Route v4 - aichatonlineorg.erweima.ai (Streaming)
+// API Route v4 - wewordle.org
 app.post('/chat/v4', async (req, res) => {
-  const { userMessage } = req.body;
-  const apiUrl = 'https://aichatonlineorg.erweima.ai/aichatonline/api/chat/gpt4o/chat';
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
-    'Origin': 'https://aichatonline.org',
-    'Referer': 'https://aichatonline.org/',
-    'uniqueid': '6dbd3acc4ffdf261b24b0541d1602cff'
-  };
-
-  const body = {
-    "prompt": userMessage,
-    "conversationId": "8bdd731372d5a0d1cf5f290712139b37",
-    "attachments": []
-  };
-
-  try {
-    const response = await axios({
-      method: 'post',
-      url: apiUrl,
-      headers: headers,
-      data: body,
-      responseType: 'stream' 
-    });
-
-    let fullReply = '';
-
-    response.data.on('data', (chunk) => {
-      const lines = chunk.toString('utf8').split('\n');
-      lines.forEach(line => {
-        if (line.trim() !== '' && line.trim() !== '[DONE]') { 
-          try {
-            const data = JSON.parse(line);
-            if (data.data && data.data.message) {
-              fullReply += data.data.message; 
-            }
-          } catch (error) {
-            console.error("JSON Parsing Error:", error, line);
-          }
-        }
-      });
-    });
-
-    response.data.on('end', () => {
-      res.json({ reply: fullReply });
-    });
-
-  } catch (error) {
-    console.error("API Request Error:", error);
-    res.status(500).json({ error: 'Something went wrong with API v4' });
-  }
-});
-
-// API Route v5 - wewordle.org
-app.post('/chat/v5', async (req, res) => {
   const { userMessage } = req.body;
   const apiUrl = 'https://wewordle.org/gptapi/v1/web/turbo';
 
@@ -280,8 +162,8 @@ app.post('/chat/v5', async (req, res) => {
   }
 });
 
-// API Route v6 - goody2.ai
-app.post('/chat/v6', async (req, res) => {
+// API Route v5 - goody2.ai
+app.post('/chat/v5', async (req, res) => {
   const { userMessage } = req.body;
   const apiUrl = 'https://www.goody2.ai/send';
 
@@ -332,8 +214,8 @@ app.post('/chat/v6', async (req, res) => {
   }
 });
 
-// API Route v7 - PinoyGPT
-app.post('/chat/v7', async (req, res) => {
+// API Route v6 - PinoyGPT
+app.post('/chat/v6', async (req, res) => {
   const { userMessage } = req.body;
   const apiUrl = 'https://www.pinoygpt.com/wp-json/mwai-ui/v1/chats/submit';
 
@@ -395,45 +277,8 @@ app.post('/chat/v7', async (req, res) => {
   }
 });
 
-// API Route v8 - GeminiGPTAI
-app.post('/chat/v8', async (req, res) => {
-  const { userMessage } = req.body;
-  const apiUrl = 'https://geminigptai.com/api';
-
-  const headers = {
-    'Content-Type': 'text/plain;charset=UTF-8',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'Origin': 'https://geminigptai.com',
-    'Referer': 'https://geminigptai.com/chat',
-    'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-    'sec-ch-ua-mobile': '?1',
-    'sec-ch-ua-platform': '"Android"'
-  };
-
-  const body = [
-    {
-      "content": userMessage,
-      "role": "user"
-    }
-  ];
-
-  try {
-    const response = await axios.post(apiUrl, body, { headers });
-
-    if (response.data && response.data.result && response.data.result.content) {
-      res.json({ reply: response.data.result.content });
-    } else {
-      throw new Error('Unexpected response structure');
-    }
-
-  } catch (error) {
-    console.error("API Request Error:", error);
-    res.status(500).json({ error: 'Something went wrong with API v8' });
-  }
-});
-
-// API Route v9 - freedomgpt.com
-app.post('/chat/v9', async (req, res) => {
+// API Route v7 - freedomgpt.com
+app.post('/chat/v7', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://chat.freedomgpt.com/api/gemini';
@@ -489,8 +334,8 @@ app.post('/chat/v9', async (req, res) => {
   }
 });
 
-// API Route v10 - chatwithfiction.com
-app.post('/chat/v10', async (req, res) => {
+// API Route v8 - chatwithfiction.com
+app.post('/chat/v8', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://www.chatwithfiction.com/api/gpt';
@@ -518,58 +363,8 @@ app.post('/chat/v10', async (req, res) => {
   }
 });
 
-// API Route v11 - gpt4o.so
-app.post('/chat/v11', async (req, res) => {
-  const { userMessage } = req.body;
-
-  const apiUrl = 'https://finechatserver.erweima.ai/api/v1/gpt4o/gpt35';
-  const headers = {
-    'Content-Type': 'application/json',
-    'uniqueid': '9778f3a204b5c7f03fb1662af1a65e32',
-    'origin': 'https://gpt4o.so',
-    'referer': 'https://gpt4o.so/'
-  };
-  const body = {
-    "prompt": userMessage,
-    "conversationId": "2b0183563c827bdfa511103bd888bdba"
-  };
-
-  try {
-    const response = await axios.post(apiUrl, body, { 
-      headers,
-      responseType: 'stream'
-    });
-
-    let fullReply = '';
-
-    response.data.on('data', (chunk) => {
-      const lines = chunk.toString().split('\n');
-      lines.forEach(line => {
-        if (line.trim() !== '' && line.trim() !== '[DONE]') {
-          try {
-            const parsedData = JSON.parse(line);
-            if (parsedData.data && parsedData.data.content) {
-              fullReply += parsedData.data.content;
-            }
-          } catch (error) {
-            console.error("Error parsing chunk:", error);
-          }
-        }
-      });
-    });
-
-    response.data.on('end', () => {
-      res.json({ reply: fullReply.trim() });
-    });
-
-  } catch (error) {
-    console.error("API Request Error:", error);
-    res.status(500).json({ error: 'Something went wrong with API v11' });
-  }
-});
-
-// API Route v12 - bookai.chat
-app.post('/chat/v12', async (req, res) => {
+// API Route v9 - bookai.chat
+app.post('/chat/v9', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://api.bookai.chat:2096/chat';
