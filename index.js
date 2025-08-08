@@ -11,77 +11,49 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/phind', async (req, res) => {
-  const { userMessage, systemPrompt = "Be Helpful and Friendly", model = "Phind Model" } = req.body;
+app.post('/chat/opengpt', async (req, res) => {
+  const { userMessage, uid = "clf3yg8730000ih08ndbdi2v4" } = req.body;
 
-  const apiUrl = 'https://https.extension.phind.com/agent/';
-  
-  if (!userMessage) {
-    return res.status(400).json({ 
-      error: "Message content is required" 
-    });
-  }
-
+  const apiUrl = 'https://open-gpt.app/api/generate';
   const headers = {
-    'content-type': 'application/json',
-    'user-agent': '',
-    'accept': '*/*',
-    'accept-encoding': 'identity'
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
+    'Referer': `https://open-gpt.app/id/app/${uid}`
   };
-
-  const payload = {
-    additional_extension_context: "",
-    allow_magic_buttons: true,
-    is_vscode_extension: true,
-    message_history: [
-      {
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        role: "user",
-        content: userMessage
-      }
-    ],
-    requested_model: model,
-    user_input: userMessage
+  const body = {
+    userInput: userMessage,
+    id: uid,
+    userKey: ""
   };
 
   try {
-    const response = await axios.post(apiUrl, payload, { headers });
+    const response = await axios.post(apiUrl, body, { headers });
     
-    // Process the stream response
-    const rawData = response.data;
-    const result = rawData.split("\n")
-      .filter(line => line.trim().startsWith("data:"))
-      .map(line => {
-        try {
-          return JSON.parse(line.slice(5).trim());
-        } catch {
-          return null;
-        }
-      })
-      .filter(item => item?.choices?.[0]?.delta?.content)
-      .map(item => item.choices[0].delta.content)
-      .join("");
-
-    if (!result) {
-      throw new Error('No valid response content received');
+    // Handle both text and JSON responses
+    let responseData;
+    if (typeof response.data === 'string') {
+      try {
+        responseData = JSON.parse(response.data);
+      } catch {
+        responseData = response.data;
+      }
+    } else {
+      responseData = response.data;
     }
 
     res.json({ 
-      reply: result,
-      model_used: model,
-      response_type: 'stream_processed'
+      reply: responseData,
+      conversation_id: uid,
+      api: "OpenGPT"
     });
 
   } catch (error) {
-    console.error('Phind API Error:', error.response ? error.response.data : error.message);
+    console.error('OpenGPT API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process Phind request',
+      error: 'Failed to process OpenGPT request',
       details: error.response?.data?.message || error.message,
-      attempted_model: model
+      attempted_uid: uid
     });
   }
 });
@@ -543,6 +515,82 @@ app.post('/chat/v11', async (req, res) => {
       error: 'Failed to process Groq request',
       details: error.response?.data?.message || error.message,
       attempted_query: userMessage
+    });
+  }
+});
+
+// API Route v12
+app.post('/chat/v12', async (req, res) => {
+  const { userMessage, systemPrompt = "Be Helpful and Friendly", model = "Phind Model" } = req.body;
+
+  const apiUrl = 'https://https.extension.phind.com/agent/';
+  
+  if (!userMessage) {
+    return res.status(400).json({ 
+      error: "Message content is required" 
+    });
+  }
+
+  const headers = {
+    'content-type': 'application/json',
+    'user-agent': '',
+    'accept': '*/*',
+    'accept-encoding': 'identity'
+  };
+
+  const payload = {
+    additional_extension_context: "",
+    allow_magic_buttons: true,
+    is_vscode_extension: true,
+    message_history: [
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: userMessage
+      }
+    ],
+    requested_model: model,
+    user_input: userMessage
+  };
+
+  try {
+    const response = await axios.post(apiUrl, payload, { headers });
+    
+    // Process the stream response
+    const rawData = response.data;
+    const result = rawData.split("\n")
+      .filter(line => line.trim().startsWith("data:"))
+      .map(line => {
+        try {
+          return JSON.parse(line.slice(5).trim());
+        } catch {
+          return null;
+        }
+      })
+      .filter(item => item?.choices?.[0]?.delta?.content)
+      .map(item => item.choices[0].delta.content)
+      .join("");
+
+    if (!result) {
+      throw new Error('No valid response content received');
+    }
+
+    res.json({ 
+      reply: result,
+      model_used: model,
+      response_type: 'stream_processed'
+    });
+
+  } catch (error) {
+    console.error('Phind API Error:', error.response ? error.response.data : error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to process Phind request',
+      details: error.response?.data?.message || error.message,
+      attempted_model: model
     });
   }
 });
