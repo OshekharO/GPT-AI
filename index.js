@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -12,41 +13,39 @@ app.use(express.static('public'));
 
 
 // test api
-app.post('/chat/acloudai', async (req, res) => {
+app.post('/chat/anshari', async (req, res) => {
   const { userMessage } = req.body;
 
-  const apiUrl = 'https://api.acloudapp.com/v1/completions';
+  const apiUrl = 'https://api.ansari.chat/api/v1/complete';
   const headers = {
     'Content-Type': 'application/json',
-    'authorization': 'sk-9jL26pavtzAHk9mdF0A5AeAfFcE1480b9b06737d9eC62c1e'
+    'User-Agent': 'Postify/1.0.0',
+    'Referer': 'https://ansari.chat/',
+    'Origin': 'https://ansari.chat',
+    'x-forwarded-for': new Array(4).fill(0).map(() => Math.floor(Math.random() * 256)).join('.')
   };
   const body = {
-    model: "gemini-pro",
     messages: [
       {
-        "role": "user",
-        "content": userMessage
+        role: "user",
+        content: userMessage
       }
-    ],
-    temperature: 0.9,
-    top_p: 0.7,
-    top_k: 40
+    ]
   };
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
     
-    if (!response.data.choices?.[0]?.message?.content) {
-      throw new Error('No valid response content received');
+    if (!response.data) {
+      throw new Error('No response data received');
     }
 
-    const replyText = response.data.choices[0].message.content;
-    res.json({ reply: replyText });
+    res.json({ reply: response.data });
 
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
     res.status(500).json({ 
-      error: error.response?.data?.message || 'Something went wrong with AcloudAI API' 
+      error: error.response?.data?.message || 'Something went wrong with Anshari API' 
     });
   }
 });
