@@ -10,6 +10,47 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+
+// test api
+app.post('/chat/acloudai', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://api.acloudapp.com/v1/completions';
+  const headers = {
+    'Content-Type': 'application/json',
+    'authorization': 'sk-9jL26pavtzAHk9mdF0A5AeAfFcE1480b9b06737d9eC62c1e'
+  };
+  const body = {
+    model: "gemini-pro",
+    messages: [
+      {
+        "role": "user",
+        "content": userMessage
+      }
+    ],
+    temperature: 0.9,
+    top_p: 0.7,
+    top_k: 40
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    
+    if (!response.data.choices?.[0]?.message?.content) {
+      throw new Error('No valid response content received');
+    }
+
+    const replyText = response.data.choices[0].message.content;
+    res.json({ reply: replyText });
+
+  } catch (error) {
+    console.error(error.response ? error.response.data : error.message);
+    res.status(500).json({ 
+      error: error.response?.data?.message || 'Something went wrong with AcloudAI API' 
+    });
+  }
+});
+
 // API Route v1 - claude3.free2gpt.xyz
 app.post('/chat/v1', async (req, res) => {
   const { userMessage } = req.body;
