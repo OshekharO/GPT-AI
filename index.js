@@ -11,54 +11,75 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/pizzagpt', async (req, res) => {
-  const { userMessage, model = "gpt-4o-mini", proxy = null } = req.body;
+app.post('/chat/phind', async (req, res) => {
+  const { userMessage, systemPrompt = "Be Helpful and Friendly", model = "Phind Model" } = req.body;
 
-  const apiUrl = 'https://www.pizzagpt.it/api/chatx-completion';
+  const apiUrl = 'https://https.extension.phind.com/agent/';
+  
+  if (!userMessage) {
+    return res.status(400).json({ 
+      error: "Message content is required" 
+    });
+  }
+
   const headers = {
-    'accept': 'application/json',
-    'accept-language': 'en-US,en;q=0.9',
     'content-type': 'application/json',
-    'origin': 'https://www.pizzagpt.it',
-    'referer': 'https://www.pizzagpt.it/en',
-    'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Linux"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-    'x-secret': 'Marinara'
+    'user-agent': '',
+    'accept': '*/*',
+    'accept-encoding': 'identity'
   };
 
-  const body = {
-    question: userMessage
+  const payload = {
+    additional_extension_context: "",
+    allow_magic_buttons: true,
+    is_vscode_extension: true,
+    message_history: [
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: userMessage
+      }
+    ],
+    requested_model: model,
+    user_input: userMessage
   };
 
   try {
-    const config = {
-      headers,
-      ...(proxy && { proxy }) // Only add proxy if provided
-    };
-
-    const response = await axios.post(apiUrl, body, config);
+    const response = await axios.post(apiUrl, payload, { headers });
     
-    const content = response.data.answer?.content || response.data;
-    if (!content) {
-      throw new Error('No content received from PizzaGPT');
+    // Process the stream response
+    const rawData = response.data;
+    const result = rawData.split("\n")
+      .filter(line => line.trim().startsWith("data:"))
+      .map(line => {
+        try {
+          return JSON.parse(line.slice(5).trim());
+        } catch {
+          return null;
+        }
+      })
+      .filter(item => item?.choices?.[0]?.delta?.content)
+      .map(item => item.choices[0].delta.content)
+      .join("");
+
+    if (!result) {
+      throw new Error('No valid response content received');
     }
 
     res.json({ 
-      reply: content,
+      reply: result,
       model_used: model,
-      source: 'PizzaGPT'
+      response_type: 'stream_processed'
     });
 
   } catch (error) {
-    console.error('PizzaGPT API Error:', error.response ? error.response.data : error.message);
+    console.error('Phind API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process PizzaGPT request',
+      error: 'Failed to process Phind request',
       details: error.response?.data?.message || error.message,
       attempted_model: model
     });
