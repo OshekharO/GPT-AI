@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
-const https = require('https');
 
 const app = express();
 const port = 3000;
@@ -12,78 +11,41 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/darkai', async (req, res) => {
-  const { userMessage } = req.body;
-  
-  const AVAILABLE_MODELS = ["llama-3-70b", "llama-3-405b", "gpt-3.5-turbo", "gpt-4o"];
-  const selectedModel = AVAILABLE_MODELS[Math.floor(Math.random() * AVAILABLE_MODELS.length)];
+app.post('/chat/duckdns', async (req, res) => {
+  const { userMessage, chatId = -1 } = req.body;
 
-  const apiUrl = 'https://darkai.foundation/chat';
+  const apiUrl = 'http://chatbot-prototype.duckdns.org/api/chatbot';
   const headers = {
-    'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0'
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+    'Referer': 'http://chatbot-prototype.duckdns.org/'
   };
   const body = {
-    query: userMessage,
-    model: selectedModel
+    message: userMessage || "Hy",
+    chatId: chatId
   };
 
   try {
-    // Create custom HTTPS agent to handle SSL issues
-    const httpsAgent = new https.Agent({
-      rejectUnauthorized: false, // Bypass SSL certificate validation (use cautiously)
-      minVersion: 'TLSv1.2', // Force minimum TLS version
-      ciphers: [
-        'TLS_AES_256_GCM_SHA384',
-        'TLS_CHACHA20_POLY1305_SHA256',
-        'TLS_AES_128_GCM_SHA256',
-        'ECDHE-RSA-AES128-GCM-SHA256',
-        'ECDHE-ECDSA-AES128-GCM-SHA256'
-      ].join(':'),
-      honorCipherOrder: true
-    });
-
-    const response = await axios.post(apiUrl, body, { 
-      headers,
-      httpsAgent,
-      timeout: 10000
-    });
+    const response = await axios.post(apiUrl, body, { headers });
     
-    if (!response.data) {
-      throw new Error('No response data received');
-    }
-
-    // Extract data from stream if needed
-    const extractData = (input) => {
-      if (typeof input !== 'string') return input;
-      return input.split("\n")
-        .filter(line => line.startsWith("data: "))
-        .map(line => {
-          try {
-            const json = JSON.parse(line.substring(6).trim());
-            if (json.event === "stream-end") return "";
-            if (json.event === "final-response") return json.data.message || "";
-            return "";
-          } catch {
-            return "";
-          }
-        }).join("").trim();
+    // Remove <p> tags if present
+    const cleanText = (text) => {
+      if (!text) return "";
+      return text.startsWith("<p>") && text.endsWith("</p>") 
+        ? text.slice(3, -4) 
+        : text;
     };
 
-    const reply = extractData(response.data);
-    
-    res.json({ 
-      reply: reply,
-      model_used: selectedModel 
+    res.json({
+      reply: cleanText(response.data?.message),
+      chatId: response.data?.chatId || chatId
     });
 
   } catch (error) {
-    console.error('DarkAI API Error:', error);
+    console.error('DuckDNS API Error:', error.response ? error.response.data : error.message);
     res.status(500).json({ 
-      error: 'Failed to communicate with DarkAI API',
-      details: error.message,
-      attempted_model: selectedModel
+      error: 'Failed to process DuckDNS request',
+      details: error.response?.data?.message || error.message
     });
   }
 });
