@@ -10,8 +10,50 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+// test
+app.post('/chat/biblegpt', async (req, res) => {
+  const { userMessage } = req.body;
 
-// test api
+  const apiUrl = 'https://biblegpt.prasetia.me/api/generate';
+  const headers = {
+    'accept': '*/*',
+    'accept-language': 'id-ID,id;q=0.9',
+    'cache-control': 'no-cache',
+    'content-type': 'application/json',
+    'origin': 'https://biblegpt.prasetia.me',
+    'pragma': 'no-cache',
+    'priority': 'u=1, i',
+    'referer': 'https://biblegpt.prasetia.me/',
+    'sec-ch-ua': '"Chromium";v="131", "Not_A Brand";v="24", "Microsoft Edge Simulate";v="131", "Lemur";v="131"',
+    'sec-ch-ua-mobile': '?1',
+    'sec-ch-ua-platform': '"Android"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36'
+  };
+  const body = {
+    prompt: userMessage
+  };
+
+  try {
+    const response = await axios.post(apiUrl, body, { headers });
+    
+    if (!response.data) {
+      throw new Error('No response data received from BibleGPT');
+    }
+
+    res.json({ reply: response.data });
+
+  } catch (error) {
+    console.error('BibleGPT API Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({ 
+      error: error.response?.data?.message || 'Something went wrong with BibleGPT API' 
+    });
+  }
+});
+
+// working 
 app.post('/chat/anshari', async (req, res) => {
   const { userMessage } = req.body;
 
