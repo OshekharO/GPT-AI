@@ -1,7 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const cors = require('cors');              
+const cors = require('cors');
+const https = require('https');
 
 const app = express();
 const port = 3000;
@@ -29,7 +30,25 @@ app.post('/chat/darkai', async (req, res) => {
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
+    // Create custom HTTPS agent to handle SSL issues
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false, // Bypass SSL certificate validation (use cautiously)
+      minVersion: 'TLSv1.2', // Force minimum TLS version
+      ciphers: [
+        'TLS_AES_256_GCM_SHA384',
+        'TLS_CHACHA20_POLY1305_SHA256',
+        'TLS_AES_128_GCM_SHA256',
+        'ECDHE-RSA-AES128-GCM-SHA256',
+        'ECDHE-ECDSA-AES128-GCM-SHA256'
+      ].join(':'),
+      honorCipherOrder: true
+    });
+
+    const response = await axios.post(apiUrl, body, { 
+      headers,
+      httpsAgent,
+      timeout: 10000
+    });
     
     if (!response.data) {
       throw new Error('No response data received');
@@ -60,9 +79,10 @@ app.post('/chat/darkai', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('DarkAI API Error:', error.response ? error.response.data : error.message);
+    console.error('DarkAI API Error:', error);
     res.status(500).json({ 
-      error: error.response?.data?.message || 'Something went wrong with DarkAI API',
+      error: 'Failed to communicate with DarkAI API',
+      details: error.message,
       attempted_model: selectedModel
     });
   }
