@@ -11,56 +11,37 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/rapidapi', async (req, res) => {
-  const { userMessage, input_url } = req.body;
+app.post('/chat/groq', async (req, res) => {
+  const { userMessage } = req.body;
 
-  const API_KEY = "0647bc5201msh84a9358b48d00eep163485jsne7ecf062e49f";
-  const RAPIDAPI_HOST = "chatgpt-best-price.p.rapidapi.com";
+  const apiUrl = 'https://api-zenn.vercel.app/api/ai/groq';
   
-  if (!input_url) {
+  if (!userMessage) {
     return res.status(400).json({ 
-      error: "Input URL is required" 
+      error: "No message provided" 
     });
   }
 
-  const apiUrl = `https://${RAPIDAPI_HOST}/v1/chat/completions`;
-  const headers = {
-    'x-rapidapi-key': API_KEY,
-    'x-rapidapi-host': RAPIDAPI_HOST,
-    'Content-Type': 'application/json'
-  };
-  const body = {
-    model: "gpt-3.5-turbo",
-    messages: [{
-      role: "user",
-      content: (userMessage || "Describe this") + "\n\n" + input_url
-    }]
-  };
-
   try {
-    const response = await axios.post(apiUrl, body, { headers });
+    // Using axios with URL parameters
+    const response = await axios.get(`${apiUrl}?q=${encodeURIComponent(userMessage)}`);
     
+    if (!response.data?.data) {
+      throw new Error('No valid response data received');
+    }
+
     res.json({ 
-      reply: response.data.choices?.[0]?.message?.content || "No response content",
-      usage: {
-        prompt_tokens: response.data.usage?.prompt_tokens,
-        completion_tokens: response.data.usage?.completion_tokens
-      }
+      reply: response.data.data,
+      api: "groq"
     });
 
   } catch (error) {
-    console.error('RapidAPI Error:', error.response ? error.response.data : error.message);
+    console.error('Groq API Error:', error.response ? error.response.data : error.message);
     
-    const statusCode = error.response?.status || 500;
-    const errorMessage = error.response?.data?.message || error.message;
-    
-    res.status(statusCode).json({ 
-      error: 'RapidAPI request failed',
-      details: errorMessage,
-      attempted_request: {
-        model: body.model,
-        input_length: body.messages[0].content.length
-      }
+    res.status(500).json({ 
+      error: 'Failed to process Groq request',
+      details: error.response?.data?.message || error.message,
+      attempted_query: userMessage
     });
   }
 });
