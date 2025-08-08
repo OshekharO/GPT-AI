@@ -11,65 +11,55 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/galichat', async (req, res) => {
-  const { userMessage } = req.body;
+app.post('/chat/rapidapi', async (req, res) => {
+  const { userMessage, input_url } = req.body;
 
-  const apiUrl = 'https://widget.galichat.com/api/vector-search';
+  const API_KEY = "0647bc5201msh84a9358b48d00eep163485jsne7ecf062e49f";
+  const RAPIDAPI_HOST = "chatgpt-best-price.p.rapidapi.com";
+  
+  if (!input_url) {
+    return res.status(400).json({ 
+      error: "Input URL is required" 
+    });
+  }
+
+  const apiUrl = `https://${RAPIDAPI_HOST}/v1/chat/completions`;
   const headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://widget.galichat.com/chat/6691wb9cakfml2mjro2x19'
+    'x-rapidapi-key': API_KEY,
+    'x-rapidapi-host': RAPIDAPI_HOST,
+    'Content-Type': 'application/json'
   };
-
   const body = {
-    message: userMessage || "Woi",
-    userPrompt: "All the responses should be understood by general people. Respond with simple answers that have maxim 3-4 sentences and could be understood by general people. If you don't know something or if it is not clearly specified in the docs respond with 'Unfortunately, we cannot help now with this information, a human agent will get back to you.'",
-    vibeResponse: "neutral",
-    threadId: "q0pgZUXdmh6WiZb1x0s2uw6",
-    chatHash: "6691wb9cakfml2mjro2x19",
-    chatHistory: []
+    model: "gpt-3.5-turbo",
+    messages: [{
+      role: "user",
+      content: (userMessage || "Describe this") + "\n\n" + input_url
+    }]
   };
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-
-    // Handle both text and JSON responses
-    let responseData;
-    if (typeof response.data === 'string') {
-      try {
-        responseData = JSON.parse(response.data);
-      } catch {
-        responseData = { data: response.data };
-      }
-    } else {
-      responseData = response.data;
-    }
-
+    
     res.json({ 
-      reply: responseData.data || responseData,
-      metadata: {
-        threadId: body.threadId,
-        chatHash: body.chatHash
+      reply: response.data.choices?.[0]?.message?.content || "No response content",
+      usage: {
+        prompt_tokens: response.data.usage?.prompt_tokens,
+        completion_tokens: response.data.usage?.completion_tokens
       }
     });
 
   } catch (error) {
-    console.error('Galichat API Error:', error.response ? error.response.data : error.message);
+    console.error('RapidAPI Error:', error.response ? error.response.data : error.message);
     
-    let errorMessage = error.message;
-    let statusCode = 500;
+    const statusCode = error.response?.status || 500;
+    const errorMessage = error.response?.data?.message || error.message;
     
-    if (error.response) {
-      statusCode = error.response.status;
-      errorMessage = error.response.data || error.message;
-    }
-
     res.status(statusCode).json({ 
-      error: 'Galichat API request failed',
+      error: 'RapidAPI request failed',
       details: errorMessage,
-      attemptedRequest: {
-        message: body.message,
-        threadId: body.threadId
+      attempted_request: {
+        model: body.model,
+        input_length: body.messages[0].content.length
       }
     });
   }
