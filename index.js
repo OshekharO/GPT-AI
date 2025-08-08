@@ -11,37 +11,75 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // test
-app.post('/chat/groq', async (req, res) => {
-  const { userMessage } = req.body;
+app.post('/chat/yoursearch', async (req, res) => {
+  const { userMessage, customPrompt } = req.body;
 
-  const apiUrl = 'https://api-zenn.vercel.app/api/ai/groq';
-  
-  if (!userMessage) {
-    return res.status(400).json({ 
-      error: "No message provided" 
-    });
-  }
+  const apiUrl = 'https://app.yoursearch.ai/api';
+  const headers = {
+    'content-type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://app.yoursearch.ai/?q=joo'
+  };
+
+  const defaultPrompt = `Search term: "{searchTerm}"
+
+Create a summary of the search results in three paragraphs with reference numbers, which you then list numbered at the bottom.
+Include emojis in the summary.
+Be sure to include the reference numbers in the summary.
+Both in the text of the summary and in the reference list, the reference numbers should look like this: "(1)".
+Formulate simple sentences.
+Include blank lines between the paragraphs.
+Do not reply with an introduction, but start directly with the summary.
+Include emojis in the summary.
+
+At the end, write a hint text where I can find search results as a comparison with the above search term with a link to Google search in this format: 
+"See Google results: <Google search link>"
+
+Below that, provide a tip on how I can optimize the search results for my search query.
+
+I show you in which format this should be structured:
+
+\`\`\`
+<Summary of search results with reference numbers>
+
+Sources:
+(1) <URL of the first reference>
+(2) <URL of the second reference>
+
+<Hint text for further search results with Google link>
+<Tip on optimizing the search results>
+\`\`\`
+
+Here are the search results:
+{searchResults}`;
+
+  const body = {
+    searchTerm: userMessage,
+    promptTemplate: customPrompt || defaultPrompt,
+    searchParameters: "{}",
+    searchResultTemplate: '[{order}] "{snippet}"\nURL: {link}'
+  };
 
   try {
-    // Using axios with URL parameters
-    const response = await axios.get(`${apiUrl}?q=${encodeURIComponent(userMessage)}`);
+    const response = await axios.post(apiUrl, body, { headers });
     
-    if (!response.data?.data) {
-      throw new Error('No valid response data received');
+    if (!response.data) {
+      throw new Error('No response data received');
     }
 
-    res.json({ 
-      reply: response.data.data,
-      api: "groq"
+    res.json({
+      reply: response.data,
+      search_term: userMessage,
+      format: 'structured_search_results'
     });
 
   } catch (error) {
-    console.error('Groq API Error:', error.response ? error.response.data : error.message);
+    console.error('YourSearchAI API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process Groq request',
+      error: 'Failed to process search request',
       details: error.response?.data?.message || error.message,
-      attempted_query: userMessage
+      attempted_search: userMessage
     });
   }
 });
@@ -468,6 +506,41 @@ app.post('/chat/v10', async (req, res) => {
     console.error('Chataibot API Error:', error.response ? error.response.data : error.message);
     res.status(500).json({ 
       error: error.response?.data?.message || 'Something went wrong with Chataibot API' 
+    });
+  }
+});
+
+// API Route v11
+app.post('/chat/v11', async (req, res) => {
+  const { userMessage } = req.body;
+
+  const apiUrl = 'https://api-zenn.vercel.app/api/ai/groq';
+  
+  if (!userMessage) {
+    return res.status(400).json({ 
+      error: "No message provided" 
+    });
+  }
+
+  try {
+    const response = await axios.get(`${apiUrl}?q=${encodeURIComponent(userMessage)}`);
+    
+    if (!response.data?.data) {
+      throw new Error('No valid response data received');
+    }
+
+    res.json({ 
+      reply: response.data.data,
+      api: "groq"
+    });
+
+  } catch (error) {
+    console.error('Groq API Error:', error.response ? error.response.data : error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to process Groq request',
+      details: error.response?.data?.message || error.message,
+      attempted_query: userMessage
     });
   }
 });
