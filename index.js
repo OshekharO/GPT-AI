@@ -10,7 +10,69 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-//
+// Route typliai
+app.post('/chat/typliai', async (req, res) => {
+  const { userMessage, temperature = 1.2, apiKey = "undefined" } = req.body;
+
+  const apiUrl = 'https://typli.ai/api/generators/completion';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://typli.ai/ai-answer-generator'
+  };
+
+  if (!userMessage) {
+    return res.status(400).json({ 
+      error: "Message content is required" 
+    });
+  }
+
+  try {
+    const response = await axios.post(apiUrl, {
+      prompt: userMessage,
+      temperature: temperature
+    }, { headers });
+
+    // Process the response data
+    let reply;
+    if (typeof response.data === 'string') {
+      // Extract text from the special format
+      reply = response.data.split("\n")
+        .filter(line => line.trim().startsWith('0:"'))
+        .map(line => {
+          try {
+            const startIndex = line.indexOf('0:"') + 3;
+            const endIndex = line.lastIndexOf('"');
+            return JSON.parse(`"${line.slice(startIndex, endIndex)}"`);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+        .join("") || "No text was generated.";
+    } else {
+      reply = response.data;
+    }
+
+    res.json({ 
+      reply: reply,
+      temperature: temperature,
+      api: "TypliAI"
+    });
+
+  } catch (error) {
+    console.error('TypliAI API Error:', error.response ? error.response.data : error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to process TypliAI request',
+      details: error.response?.data?.message || error.message,
+      attempted_prompt: userMessage.substring(0, 50) + (userMessage.length > 50 ? "..." : "")
+    });
+  }
+});
+
+// Route heckai
 app.post('/chat/heckai', async (req, res) => {
   const { 
     userMessage,
