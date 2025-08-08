@@ -35,7 +35,11 @@ app.post('/chat/heckai', async (req, res) => {
   const modelList = {
     1: "google/gemini-2.0-flash-001",
     2: "deepseek/deepseek-r1",
-    3: "openai/gpt-4o-mini"
+    3: "openai/gpt-4o-mini",
+    4: "deepseek/deepseek-chat",
+    5: "x-ai/grok-3-mini-beta",
+    6: "openai/gpt-4.1-mini",
+    7: "meta-llama/llama-4-scout"
   };
 
   if (!userMessage) {
@@ -45,7 +49,6 @@ app.post('/chat/heckai', async (req, res) => {
   }
 
   try {
-    // Helper function to parse response data
     const parseData = (input) => {
       const get = (start, end) => {
         const lines = input.split("\n").map(line => {
@@ -71,7 +74,7 @@ app.post('/chat/heckai', async (req, res) => {
       };
     };
 
-    // Create session first
+    // Create session
     const slugTitle = `${userMessage?.split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toLocaleDateString()}`;
     const sessionResponse = await axios.post(`${apiBaseUrl}/session/create`, {
       title: slugTitle
