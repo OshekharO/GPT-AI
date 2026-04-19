@@ -189,18 +189,23 @@ app.post('/chat/heckai', async (req, res) => {
 // API Route v1 - NoteGPT
 // Magic value required by the notegpt.io sbox-guid cookie field
 const NOTEGPT_SBOX_MAGIC = '907803882';
+// 30 days in seconds, used for the _ga cookie's creation-time offset
+const NOTEGPT_GA_OFFSET_SECONDS = 2592000;
 
 function notegptMakeCookie() {
   const anonId = crypto.randomUUID();
   const sbox = Buffer.from(`${Math.floor(Date.now() / 1000)}|${NOTEGPT_SBOX_MAGIC}`).toString('base64');
   const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000)}`;
-  const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - 2592000)}`;
+  const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - NOTEGPT_GA_OFFSET_SECONDS)}`;
   return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
 }
 
 async function handleV1(req, res) {
   const source = req.method === 'GET' ? req.query : req.body;
-  const { userMessage, lang, model, tone, length, convId } = source;
+  const { lang, model, tone, length, convId } = source;
+  // Coerce userMessage to string to handle array values from repeated query params
+  const rawMessage = source.userMessage;
+  const userMessage = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
 
   if (req.method === 'GET') {
     res.set('Cache-Control', 'no-store');
