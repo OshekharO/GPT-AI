@@ -954,6 +954,65 @@ app.post('/chat/heckai', async (req, res) => {
   }
 });
 
+// API Route v14 - chatespanolaigratis.com
+app.post('/chat/v14', async (req, res) => {
+  const { userMessage } = req.body;
+
+  if (!userMessage) {
+    return res.status(400).json({ error: 'Message content is required' });
+  }
+
+  const pageUrl = 'https://chatespanolaigratis.com/';
+  const ajaxUrl = 'https://chatespanolaigratis.com/wp-admin/admin-ajax.php';
+  const commonHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Origin': 'https://chatespanolaigratis.com',
+    'Referer': 'https://chatespanolaigratis.com/'
+  };
+
+  try {
+    // Fetch the page to extract nonce and bot_id used by the aipkit AJAX handler
+    const pageResponse = await axios.get(pageUrl, { headers: commonHeaders });
+    const pageHtml = pageResponse.data;
+
+    const nonceMatch = pageHtml.match(/["']nonce["']\s*:\s*["']([a-f0-9]+)["']/);
+    const nonce = nonceMatch ? nonceMatch[1] : '';
+
+    const botIdMatch = pageHtml.match(/["']bot_id["']\s*:\s*["']?(\d+)["']?/);
+    const botId = botIdMatch ? botIdMatch[1] : '';
+
+    const formData = new URLSearchParams({
+      action: 'wpaicg_chat_shortcode_message',
+      message: userMessage,
+      bot_id: botId,
+      _wpnonce: nonce
+    });
+
+    const response = await axios.post(ajaxUrl, formData.toString(), {
+      headers: {
+        ...commonHeaders,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    if (!response.data?.success || !response.data?.data?.reply) {
+      throw new Error('Invalid response from ChatEspanolAIGratis API');
+    }
+
+    res.json({
+      reply: response.data.data.reply,
+      message_id: response.data.data.message_id,
+      api: 'ChatEspanolAIGratis'
+    });
+
+  } catch (error) {
+    console.error('ChatEspanolAIGratis API Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({
+      error: error.response?.data?.message || 'Something went wrong with ChatEspanolAIGratis API'
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
