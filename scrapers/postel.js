@@ -3,6 +3,13 @@ const axios = require('axios');
 
 const router = express.Router();
 
+const POSTEL_MAX_RETRIES = 3;
+const POSTEL_RETRY_DELAY_MS = 1000;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // API Route postel - postel.app chatgpt-alternative
 router.post('/', async (req, res) => {
   const { userMessage, model = "gpt-4o", length = "medium" } = req.body;
@@ -19,36 +26,51 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: "Message content is required" });
   }
 
-  try {
-    const response = await axios.post(apiUrl, {
-      prompt: userMessage,
-      model: model,
-      length: length
-    }, { headers });
+  let lastError;
+  for (let attempt = 1; attempt <= POSTEL_MAX_RETRIES; attempt++) {
+    try {
+      const response = await axios.post(apiUrl, {
+        prompt: userMessage,
+        model: model,
+        length: length
+      }, { headers });
 
-    const data = response.data;
+      const data = response.data;
 
-    const rawReply = (data && typeof data === 'object') ? (data?.text ?? data) : data;
-    const reply = typeof rawReply === 'string' ? rawReply : JSON.stringify(rawReply);
-    const wordCount = typeof data?.wordCount === 'number'
-      ? data.wordCount
-      : (reply.trim() ? reply.trim().split(/\s+/).length : 0);
+      const rawReply = (data && typeof data === 'object') ? (data?.text ?? data) : data;
+      const reply = typeof rawReply === 'string' ? rawReply : JSON.stringify(rawReply);
+      const wordCount = typeof data?.wordCount === 'number'
+        ? data.wordCount
+        : (reply.trim() ? reply.trim().split(/\s+/).length : 0);
 
-    res.json({
-      reply,
-      wordCount,
-      model: data?.model || model,
-      api: "Postel"
-    });
+      return res.json({
+        reply,
+        wordCount,
+        model: data?.model || model,
+        api: "Postel"
+      });
 
-  } catch (error) {
-    console.error('Postel API Error:', error.response ? error.response.data : error.message);
-
-    res.status(500).json({
-      error: 'Failed to process Postel request',
-      details: error.response?.data?.message || error.message
-    });
+    } catch (error) {
+      lastError = error;
+      const status = error.response?.status;
+      if (status === 429 && attempt < POSTEL_MAX_RETRIES) {
+        const delay = POSTEL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.warn(`Postel API rate limited (429). Retrying attempt ${attempt + 1}/${POSTEL_MAX_RETRIES} after ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+      break;
+    }
   }
+
+  console.error('Postel API Error:', lastError.response ? lastError.response.data : lastError.message);
+  const upstreamStatus = lastError.response?.status;
+  const httpStatus = upstreamStatus === 429 ? 429 : 500;
+
+  res.status(httpStatus).json({
+    error: 'Failed to process Postel request',
+    details: lastError.response?.data?.message || lastError.message
+  });
 });
 
 module.exports = router;
