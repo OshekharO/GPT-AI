@@ -401,9 +401,16 @@ app.post('/chat/v4', async (req, res) => {
     });
 
     let fullReply = '';
+    let buffer = '';
+
+    req.on('close', () => {
+      response.data.destroy();
+    });
 
     response.data.on('data', (chunk) => {
-      const lines = chunk.toString().split('\n');
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep the last (potentially incomplete) line
       lines.forEach(line => {
         const trimmed = line.trim();
         if (!trimmed) return;
@@ -419,15 +426,29 @@ app.post('/chat/v4', async (req, res) => {
     });
 
     response.data.on('end', () => {
+      if (res.headersSent) return;
+      // process any remaining buffered content
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer.trim());
+          if (parsed.type === 'delta' && parsed.delta) {
+            fullReply += parsed.delta;
+          }
+        } catch {
+          // ignore
+        }
+      }
       res.json({ reply: fullReply });
     });
 
     response.data.on('error', (err) => {
       console.error("Stream Error:", err);
+      if (res.headersSent) return;
       res.status(500).json({ error: 'Stream error with API v4' });
     });
   } catch (error) {
     console.error("API Request Error:", error);
+    if (res.headersSent) return;
     res.status(500).json({ error: 'Something went wrong with API v4' });
   }
 });
