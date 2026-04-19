@@ -38,10 +38,10 @@ async function handleV14(req, res) {
     const chatPayload = {
       question: userMessage,
       model,
-      searchEnabled: false,
+      searchEnabled: true,
       studyMode: false,
       chat: [
-        { text: 'Ciao, come posso aiutarti oggi?', sender: 'assistant' },
+        { text: 'Hi, how can I help you today?', sender: 'assistant' },
         { text: userMessage, sender: 'user', studyMode: false }
       ],
       posthogId: csrfToken
