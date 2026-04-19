@@ -954,49 +954,83 @@ app.post('/chat/heckai', async (req, res) => {
   }
 });
 
-// API Route v14 - chatespanolaigratis.com
+// API Route v14 - DuckDuckGo AI Chat
 app.post('/chat/v14', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage, model = 'gpt-4o-mini' } = req.body;
 
   if (!userMessage) {
     return res.status(400).json({ error: 'Message content is required' });
   }
 
-  const ajaxUrl = 'https://chatespanolaigratis.com/wp-admin/admin-ajax.php';
+  const statusUrl = 'https://duckduckgo.com/duckchat/v1/status';
+  const chatUrl = 'https://duckduckgo.com/duckchat/v1/chat';
+  const commonHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Origin': 'https://duckduckgo.com',
+    'Referer': 'https://duckduckgo.com/'
+  };
 
   try {
-    const formData = new URLSearchParams({
-      action: 'wpaicg_chat_shortcode_message',
-      message: userMessage
-    });
-
-    const response = await axios.post(ajaxUrl, formData.toString(), {
+    // Step 1: Obtain a VQD token required by the chat endpoint
+    const statusResponse = await axios.get(statusUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Origin': 'https://chatespanolaigratis.com',
-        'Referer': 'https://chatespanolaigratis.com/en/',
-        'Content-Type': 'application/x-www-form-urlencoded'
+        ...commonHeaders,
+        'x-vqd-accept': '1',
+        'Accept': 'application/json'
       }
     });
 
-    if (
-      !response.data?.success ||
-      !response.data?.data ||
-      typeof response.data.data.reply !== 'string'
-    ) {
-      throw new Error('Invalid response from ChatEspanolAIGratis API');
+    const vqd = statusResponse.headers['x-vqd-4'];
+    if (!vqd) {
+      throw new Error('Failed to obtain VQD token from DuckDuckGo');
+    }
+
+    // Step 2: Send the chat message and collect the SSE stream response
+    const chatResponse = await axios.post(chatUrl, {
+      model: model,
+      messages: [{ role: 'user', content: userMessage }]
+    }, {
+      headers: {
+        ...commonHeaders,
+        'x-vqd-4': vqd,
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      },
+      responseType: 'text'
+    });
+
+    let reply = '';
+    const lines = chatResponse.data.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.substring(6).trim();
+        if (data && data !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.message) {
+              reply += parsed.message;
+            }
+          } catch (parseErr) {
+            console.error('DuckDuckGo AI: failed to parse SSE line:', parseErr.message, '| line:', data);
+          }
+        }
+      }
+    }
+
+    if (!reply) {
+      throw new Error('No content received from DuckDuckGo AI (empty or unparseable SSE stream)');
     }
 
     res.json({
-      reply: response.data.data.reply,
-      message_id: response.data.data.message_id,
-      api: 'ChatEspanolAIGratis'
+      reply: reply,
+      model: model,
+      api: 'DuckDuckGoAI'
     });
 
   } catch (error) {
-    console.error('ChatEspanolAIGratis API Error:', error.response ? error.response.data : error.message);
+    console.error('DuckDuckGo AI Error:', error.response ? error.response.data : error.message);
     res.status(500).json({
-      error: error.response?.data?.message || 'Something went wrong with ChatEspanolAIGratis API'
+      error: error.response?.data?.message || 'Something went wrong with DuckDuckGo AI API'
     });
   }
 });
