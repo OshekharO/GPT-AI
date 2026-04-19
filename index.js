@@ -11,181 +11,6 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Route typliai
-app.post('/chat/typliai', async (req, res) => {
-  const { userMessage, temperature = 1.2, apiKey = "undefined" } = req.body;
-
-  const apiUrl = 'https://typli.ai/api/generators/completion';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://typli.ai/ai-answer-generator'
-  };
-
-  if (!userMessage) {
-    return res.status(400).json({ 
-      error: "Message content is required" 
-    });
-  }
-
-  try {
-    const response = await axios.post(apiUrl, {
-      prompt: userMessage,
-      temperature: temperature
-    }, { headers });
-
-    // Process the response data
-    let reply;
-    if (typeof response.data === 'string') {
-      // Extract text from the special format
-      reply = response.data.split("\n")
-        .filter(line => line.trim().startsWith('0:"'))
-        .map(line => {
-          try {
-            const startIndex = line.indexOf('0:"') + 3;
-            const endIndex = line.lastIndexOf('"');
-            return JSON.parse(`"${line.slice(startIndex, endIndex)}"`);
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean)
-        .join("") || "No text was generated.";
-    } else {
-      reply = response.data;
-    }
-
-    res.json({ 
-      reply: reply,
-      temperature: temperature,
-      api: "TypliAI"
-    });
-
-  } catch (error) {
-    console.error('TypliAI API Error:', error.response ? error.response.data : error.message);
-    
-    res.status(500).json({ 
-      error: 'Failed to process TypliAI request',
-      details: error.response?.data?.message || error.message,
-      attempted_prompt: userMessage.substring(0, 50) + (userMessage.length > 50 ? "..." : "")
-    });
-  }
-});
-
-// Route heckai
-app.post('/chat/heckai', async (req, res) => {
-  const { 
-    userMessage,
-    type = "chat",
-    model = 1,
-    lang = "English",
-    prev_answer = null,
-    prev_question = null
-  } = req.body;
-
-  const apiBaseUrl = 'https://api.heckai.weight-wave.com/api/ha/v1';
-  const headers = {
-    'accept': '*/*',
-    'accept-language': 'id-ID,id;q=0.9',
-    'authorization': '',
-    'content-type': 'application/json',
-    'origin': 'https://heck.ai',
-    'referer': 'https://heck.ai/',
-    'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36'
-  };
-
-  const modelList = {
-    1: "google/gemini-2.0-flash-001",
-    2: "deepseek/deepseek-r1",
-    3: "openai/gpt-4o-mini",
-    4: "deepseek/deepseek-chat",
-    5: "x-ai/grok-3-mini-beta",
-    6: "openai/gpt-4.1-mini",
-    7: "meta-llama/llama-4-scout"
-  };
-
-  if (!userMessage) {
-    return res.status(400).json({ 
-      error: "Message content is required" 
-    });
-  }
-
-  try {
-    const parseData = (input) => {
-      const get = (start, end) => {
-        const lines = input.split("\n").map(line => {
-          const content = line.slice(6);
-          return content ? content : "\n";
-        });
-        const i = lines.indexOf(start),
-              j = lines.indexOf(end);
-        return i >= 0 && j > i ? lines.slice(i + 1, j).join("") : null;
-      };
-      
-      const answer = get("[ANSWER_START]", "[ANSWER_DONE]");
-      const related = get("[RELATE_Q_START]", "[RELATE_Q_DONE]");
-      let source = [];
-      try {
-        source = JSON.parse(get("[SOURCE_START]", "[SOURCE_DONE]") || "[]");
-      } catch {}
-      
-      return {
-        answer: answer,
-        related: related,
-        source: source
-      };
-    };
-
-    // Create session
-    const slugTitle = `${userMessage?.split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toLocaleDateString()}`;
-    const sessionResponse = await axios.post(`${apiBaseUrl}/session/create`, {
-      title: slugTitle
-    }, { headers });
-    
-    const sessionId = sessionResponse.data?.id;
-    if (!sessionId) throw new Error('Failed to create session');
-
-    // Get selected model
-    const modelName = modelList[model];
-    if (!modelName) {
-      const availableModels = Object.entries(modelList)
-        .map(([id, name]) => `${id}. ${name}`)
-        .join(", ");
-      throw new Error(`Invalid model. Available models: ${availableModels}`);
-    }
-
-    // Make the chat request
-    const chatResponse = await axios.post(`${apiBaseUrl}/${type}`, {
-      model: modelName,
-      question: userMessage,
-      language: lang,
-      sessionId: sessionId,
-      previousQuestion: prev_question,
-      previousAnswer: prev_answer
-    }, { headers });
-
-    const result = parseData(chatResponse.data);
-    
-    res.json({
-      reply: result.answer,
-      related_questions: result.related,
-      sources: result.source,
-      model_used: modelName,
-      session_id: sessionId
-    });
-
-  } catch (error) {
-    console.error('HeckAI API Error:', error.response ? error.response.data : error.message);
-    
-    res.status(500).json({ 
-      error: 'Failed to process HeckAI request',
-      details: error.response?.data?.message || error.message,
-      attempted_model: modelList[model] || `Unknown (ID: ${model})`
-    });
-  }
-});
-
 // API Route v1 - NoteGPT
 // Magic value required by the notegpt.io sbox-guid cookie field
 const NOTEGPT_SBOX_MAGIC = '907803882';
@@ -881,6 +706,229 @@ app.post('/chat/v13', async (req, res) => {
       error: 'Failed to process OpenGPT request',
       details: error.response?.data?.message || error.message,
       attempted_uid: uid
+    });
+  }
+});
+
+// API Route postel - postel.app chatgpt-alternative
+app.post('/chat/postel', async (req, res) => {
+  const { userMessage, model = "gpt-4o", length = "medium" } = req.body;
+
+  const apiUrl = 'https://www.postel.app/api/chatgpt-alternative/generate';
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://www.postel.app',
+    'Origin': 'https://www.postel.app'
+  };
+
+  if (!userMessage) {
+    return res.status(400).json({ error: "Message content is required" });
+  }
+
+  try {
+    const response = await axios.post(apiUrl, {
+      prompt: userMessage,
+      model: model,
+      length: length
+    }, { headers });
+
+    const data = response.data;
+
+    const rawReply = (data && typeof data === 'object') ? (data?.text ?? data) : data;
+    const reply = typeof rawReply === 'string' ? rawReply : JSON.stringify(rawReply);
+    const wordCount = typeof data?.wordCount === 'number'
+      ? data.wordCount
+      : (reply.trim() ? reply.trim().split(/\s+/).length : 0);
+
+    res.json({
+      reply,
+      wordCount,
+      model: data?.model || model,
+      api: "Postel"
+    });
+
+  } catch (error) {
+    console.error('Postel API Error:', error.response ? error.response.data : error.message);
+
+    res.status(500).json({
+      error: 'Failed to process Postel request',
+      details: error.response?.data?.message || error.message
+    });
+  }
+});
+
+// Route typliai
+app.post('/chat/typliai', async (req, res) => {
+  const { userMessage, temperature = 1.2, apiKey = "undefined" } = req.body;
+
+  const apiUrl = 'https://typli.ai/api/generators/completion';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://typli.ai/ai-answer-generator'
+  };
+
+  if (!userMessage) {
+    return res.status(400).json({ 
+      error: "Message content is required" 
+    });
+  }
+
+  try {
+    const response = await axios.post(apiUrl, {
+      prompt: userMessage,
+      temperature: temperature
+    }, { headers });
+
+    // Process the response data
+    let reply;
+    if (typeof response.data === 'string') {
+      // Extract text from the special format
+      reply = response.data.split("\n")
+        .filter(line => line.trim().startsWith('0:"'))
+        .map(line => {
+          try {
+            const startIndex = line.indexOf('0:"') + 3;
+            const endIndex = line.lastIndexOf('"');
+            return JSON.parse(`"${line.slice(startIndex, endIndex)}"`);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+        .join("") || "No text was generated.";
+    } else {
+      reply = response.data;
+    }
+
+    res.json({ 
+      reply: reply,
+      temperature: temperature,
+      api: "TypliAI"
+    });
+
+  } catch (error) {
+    console.error('TypliAI API Error:', error.response ? error.response.data : error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to process TypliAI request',
+      details: error.response?.data?.message || error.message,
+      attempted_prompt: userMessage.substring(0, 50) + (userMessage.length > 50 ? "..." : "")
+    });
+  }
+});
+
+// Route heckai
+app.post('/chat/heckai', async (req, res) => {
+  const { 
+    userMessage,
+    type = "chat",
+    model = 1,
+    lang = "English",
+    prev_answer = null,
+    prev_question = null
+  } = req.body;
+
+  const apiBaseUrl = 'https://api.heckai.weight-wave.com/api/ha/v1';
+  const headers = {
+    'accept': '*/*',
+    'accept-language': 'id-ID,id;q=0.9',
+    'authorization': '',
+    'content-type': 'application/json',
+    'origin': 'https://heck.ai',
+    'referer': 'https://heck.ai/',
+    'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36'
+  };
+
+  const modelList = {
+    1: "google/gemini-2.0-flash-001",
+    2: "deepseek/deepseek-r1",
+    3: "openai/gpt-4o-mini",
+    4: "deepseek/deepseek-chat",
+    5: "x-ai/grok-3-mini-beta",
+    6: "openai/gpt-4.1-mini",
+    7: "meta-llama/llama-4-scout"
+  };
+
+  if (!userMessage) {
+    return res.status(400).json({ 
+      error: "Message content is required" 
+    });
+  }
+
+  try {
+    const parseData = (input) => {
+      const get = (start, end) => {
+        const lines = input.split("\n").map(line => {
+          const content = line.slice(6);
+          return content ? content : "\n";
+        });
+        const i = lines.indexOf(start),
+              j = lines.indexOf(end);
+        return i >= 0 && j > i ? lines.slice(i + 1, j).join("") : null;
+      };
+      
+      const answer = get("[ANSWER_START]", "[ANSWER_DONE]");
+      const related = get("[RELATE_Q_START]", "[RELATE_Q_DONE]");
+      let source = [];
+      try {
+        source = JSON.parse(get("[SOURCE_START]", "[SOURCE_DONE]") || "[]");
+      } catch {}
+      
+      return {
+        answer: answer,
+        related: related,
+        source: source
+      };
+    };
+
+    // Create session
+    const slugTitle = `${userMessage?.split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toLocaleDateString()}`;
+    const sessionResponse = await axios.post(`${apiBaseUrl}/session/create`, {
+      title: slugTitle
+    }, { headers });
+    
+    const sessionId = sessionResponse.data?.id;
+    if (!sessionId) throw new Error('Failed to create session');
+
+    // Get selected model
+    const modelName = modelList[model];
+    if (!modelName) {
+      const availableModels = Object.entries(modelList)
+        .map(([id, name]) => `${id}. ${name}`)
+        .join(", ");
+      throw new Error(`Invalid model. Available models: ${availableModels}`);
+    }
+
+    // Make the chat request
+    const chatResponse = await axios.post(`${apiBaseUrl}/${type}`, {
+      model: modelName,
+      question: userMessage,
+      language: lang,
+      sessionId: sessionId,
+      previousQuestion: prev_question,
+      previousAnswer: prev_answer
+    }, { headers });
+
+    const result = parseData(chatResponse.data);
+    
+    res.json({
+      reply: result.answer,
+      related_questions: result.related,
+      sources: result.source,
+      model_used: modelName,
+      session_id: sessionId
+    });
+
+  } catch (error) {
+    console.error('HeckAI API Error:', error.response ? error.response.data : error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to process HeckAI request',
+      details: error.response?.data?.message || error.message,
+      attempted_model: modelList[model] || `Unknown (ID: ${model})`
     });
   }
 });
