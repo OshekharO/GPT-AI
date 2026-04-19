@@ -954,6 +954,107 @@ app.post('/chat/heckai', async (req, res) => {
   }
 });
 
+// API Route v14 - chatespanolaigratis.com
+// In-memory cache for nonce/bot_id with a 5-minute TTL to avoid a homepage
+// round-trip on every request. Refreshed automatically on extraction failure.
+const V14_CACHE_TTL_MS = 5 * 60 * 1000;
+let v14Cache = { nonce: '', botId: '', fetchedAt: 0 };
+
+async function getV14Credentials(pageUrl, commonHeaders, forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && v14Cache.nonce && v14Cache.botId && (now - v14Cache.fetchedAt) < V14_CACHE_TTL_MS) {
+    return { nonce: v14Cache.nonce, botId: v14Cache.botId };
+  }
+  const pageResponse = await axios.get(pageUrl, { headers: commonHeaders });
+  const pageHtml = pageResponse.data;
+  const nonceMatch = pageHtml.match(/["']nonce["']\s*:\s*["']([a-zA-Z0-9]+)["']/);
+  const botIdMatch = pageHtml.match(/["']bot_id["']\s*:\s*["']?(\d+)["']?/);
+  const nonce = nonceMatch ? nonceMatch[1] : '';
+  const botId = botIdMatch ? botIdMatch[1] : '';
+  if (nonce && botId) {
+    v14Cache = { nonce, botId, fetchedAt: Date.now() };
+  }
+  return { nonce, botId };
+}
+
+app.post('/chat/v14', async (req, res) => {
+  const { userMessage } = req.body;
+
+  if (!userMessage) {
+    return res.status(400).json({ error: 'Message content is required' });
+  }
+
+  const pageUrl = 'https://chatespanolaigratis.com/';
+  const ajaxUrl = 'https://chatespanolaigratis.com/wp-admin/admin-ajax.php';
+  const commonHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Origin': 'https://chatespanolaigratis.com',
+    'Referer': 'https://chatespanolaigratis.com/'
+  };
+
+  try {
+    let { nonce, botId } = await getV14Credentials(pageUrl, commonHeaders);
+
+    if (!nonce || !botId) {
+      return res.status(500).json({ error: 'Failed to extract required nonce/bot_id from the ChatEspanolAIGratis page' });
+    }
+
+    const formData = new URLSearchParams({
+      action: 'wpaicg_chat_shortcode_message',
+      message: userMessage,
+      bot_id: botId,
+      _wpnonce: nonce
+    });
+
+    let response = await axios.post(ajaxUrl, formData.toString(), {
+      headers: {
+        ...commonHeaders,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    // If the cached nonce was stale, refresh once and retry
+    if (!response.data?.success) {
+      ({ nonce, botId } = await getV14Credentials(pageUrl, commonHeaders, true));
+      if (!nonce || !botId) {
+        return res.status(500).json({ error: 'Failed to extract required nonce/bot_id from the ChatEspanolAIGratis page' });
+      }
+      const retryFormData = new URLSearchParams({
+        action: 'wpaicg_chat_shortcode_message',
+        message: userMessage,
+        bot_id: botId,
+        _wpnonce: nonce
+      });
+      response = await axios.post(ajaxUrl, retryFormData.toString(), {
+        headers: {
+          ...commonHeaders,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+    }
+
+    if (
+      !response.data?.success ||
+      !response.data?.data ||
+      typeof response.data.data.reply !== 'string'
+    ) {
+      throw new Error('Invalid response from ChatEspanolAIGratis API');
+    }
+
+    res.json({
+      reply: response.data.data.reply,
+      message_id: response.data.data.message_id,
+      api: 'ChatEspanolAIGratis'
+    });
+
+  } catch (error) {
+    console.error('ChatEspanolAIGratis API Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({
+      error: error.response?.data?.message || 'Something went wrong with ChatEspanolAIGratis API'
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
