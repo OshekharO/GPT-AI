@@ -23,9 +23,6 @@ app.use('/chat/v10', require('./scrapers/v10'));
 app.use('/chat/v11', require('./scrapers/v11'));
 app.use('/chat/v12', require('./scrapers/v12'));
 app.use('/chat/v13', require('./scrapers/v13'));
-app.use('/chat/postel', require('./scrapers/postel'));
-app.use('/chat/typliai', require('./scrapers/typliai'));
-app.use('/chat/heckai', require('./scrapers/heckai'));
 
 
 app.listen(port, () => {
