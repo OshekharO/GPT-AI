@@ -760,52 +760,74 @@ app.post('/chat/postel', async (req, res) => {
 
 // Route typliai
 app.post('/chat/typliai', async (req, res) => {
-  const { userMessage, temperature = 1.2, apiKey = "undefined" } = req.body;
+  const { userMessage, model = "openai/gpt-4o-mini", messages } = req.body;
 
-  const apiUrl = 'https://typli.ai/api/generators/completion';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://typli.ai/ai-answer-generator'
-  };
+  const apiUrl = 'https://typli.ai/api/generators/chat';
 
-  if (!userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') {
     return res.status(400).json({ 
-      error: "Message content is required" 
+      error: "Message content is required and must be a string" 
     });
   }
 
-  try {
-    const response = await axios.post(apiUrl, {
-      prompt: userMessage,
-      temperature: temperature
-    }, { headers });
+  const safeMessages = Array.isArray(messages) ? messages : [];
 
-    // Process the response data
-    let reply;
-    if (typeof response.data === 'string') {
-      // Extract text from the special format
-      reply = response.data.split("\n")
-        .filter(line => line.trim().startsWith('0:"'))
-        .map(line => {
+  const timestamp = Date.now();
+  const BASE36 = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const randomStr = Array.from(crypto.randomBytes(6)).map(b => BASE36[b % 36]).join('');
+  const csrfToken = Buffer.from(`${timestamp}:${randomStr}`).toString('base64');
+  const conversationId = crypto.randomBytes(12).toString('base64url').substring(0, 16);
+  const msgId = crypto.randomBytes(9).toString('base64url').substring(0, 12);
+
+  const headers = {
+    'content-type': 'application/json',
+    'user-agent': 'ai-sdk/5.0.150 runtime/browser',
+    'x-csrf-token': csrfToken,
+    'origin': 'https://typli.ai',
+    'referer': 'https://typli.ai/free-no-sign-up-chatgpt'
+  };
+
+  const allMessages = [...safeMessages, {
+    parts: [{ type: "text", text: userMessage }],
+    id: msgId,
+    role: "user"
+  }];
+
+  const payload = {
+    slug: "free-no-sign-up-chatgpt",
+    modelId: model,
+    id: conversationId,
+    messages: allMessages,
+    trigger: "submit-message"
+  };
+
+  try {
+    const response = await axios.post(apiUrl, payload, { headers, responseType: 'text' });
+
+    let reply = '';
+    const lines = response.data.split('\n');
+    lines.forEach(line => {
+      if (line.startsWith('data: ')) {
+        const data = line.substring(6).trim();
+        if (data && data !== '[DONE]') {
           try {
-            const startIndex = line.indexOf('0:"') + 3;
-            const endIndex = line.lastIndexOf('"');
-            return JSON.parse(`"${line.slice(startIndex, endIndex)}"`);
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'text-delta' && parsed.delta) {
+              reply += parsed.delta;
+            }
           } catch {
-            return null;
+            // ignore non-JSON lines
           }
-        })
-        .filter(Boolean)
-        .join("") || "No text was generated.";
-    } else {
-      reply = response.data;
+        }
+      }
+    });
+
+    if (!reply) {
+      return res.status(500).json({ error: 'TypliAI returned no content' });
     }
 
     res.json({ 
       reply: reply,
-      temperature: temperature,
       api: "TypliAI"
     });
 
@@ -814,8 +836,7 @@ app.post('/chat/typliai', async (req, res) => {
     
     res.status(500).json({ 
       error: 'Failed to process TypliAI request',
-      details: error.response?.data?.message || error.message,
-      attempted_prompt: userMessage.substring(0, 50) + (userMessage.length > 50 ? "..." : "")
+      details: error.response?.data?.message || error.message
     });
   }
 });
