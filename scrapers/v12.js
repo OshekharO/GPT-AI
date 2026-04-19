@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v12 - Phind
-router.post('/v12', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage, systemPrompt = "Be Helpful and Friendly", model = "Phind Model" } = req.body;
 
   const apiUrl = 'https://https.extension.phind.com/agent/';

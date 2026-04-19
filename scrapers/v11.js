@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v11 - groq
-router.post('/v11', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://api-zenn.vercel.app/api/ai/groq';

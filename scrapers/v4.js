@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const router = express.Router();
 
 // API Route v4 - unlimitedai.chat
-router.post('/v4', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
   const apiUrl = 'https://app.unlimitedai.chat/api/chat';
 

@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const router = express.Router();
 
 // Route typliai
-router.post('/typliai', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage, model = "openai/gpt-4o-mini", messages } = req.body;
 
   const apiUrl = 'https://typli.ai/api/generators/chat';

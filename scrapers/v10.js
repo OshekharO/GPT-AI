@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v10 - chataibot.ru
-router.post('/v10', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage, messages = [], ...rest } = req.body;
 
   const apiUrl = 'https://chataibot.ru/api/promo-chat/messages';

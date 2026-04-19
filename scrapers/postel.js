@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route postel - postel.app chatgpt-alternative
-router.post('/postel', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage, model = "gpt-4o", length = "medium" } = req.body;
 
   const apiUrl = 'https://www.postel.app/api/chatgpt-alternative/generate';

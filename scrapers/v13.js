@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v13 - OpenGPT
-router.post('/v13', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage, uid = "clf3yg8730000ih08ndbdi2v4" } = req.body;
 
   const apiUrl = 'https://open-gpt.app/api/generate';

@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // Route heckai
-router.post('/heckai', async (req, res) => {
+router.post('/', async (req, res) => {
   const { 
     userMessage,
     type = "chat",

@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v6 - PinoyGPT
-router.post('/v6', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
   const apiUrl = 'https://www.pinoygpt.com/wp-json/mwai-ui/v1/chats/submit';
 

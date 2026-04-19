@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v7 - freedomgpt.com
-router.post('/v7', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://chat.freedomgpt.com/api/gemini';

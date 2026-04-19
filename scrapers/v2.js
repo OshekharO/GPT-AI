@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v2 - Anshari
-router.post('/v2', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://api.ansari.chat/api/v1/complete';

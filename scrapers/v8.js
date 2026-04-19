@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v8 - chatwithfiction.com
-router.post('/v8', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://www.chatwithfiction.com/api/gpt';

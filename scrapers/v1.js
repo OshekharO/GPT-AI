@@ -91,7 +91,7 @@ async function handleV1(req, res) {
   }
 }
 
-router.get('/v1', handleV1);
-router.post('/v1', handleV1);
+router.get('/', handleV1);
+router.post('/', handleV1);
 
 module.exports = router;

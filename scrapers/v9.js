@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v9 - bookai.chat
-router.post('/v9', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
   const apiUrl = 'https://api.bookai.chat:2096/chat';

@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 // API Route v5 - goody2.ai
-router.post('/v5', async (req, res) => {
+router.post('/', async (req, res) => {
   const { userMessage } = req.body;
   const apiUrl = 'https://www.goody2.ai/send';
 
