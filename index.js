@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
+const crypto = require('crypto');
 
 const app = express();
 const port = 3000;
@@ -186,51 +187,53 @@ app.post('/chat/heckai', async (req, res) => {
 });
 
 // API Route v1 - NoteGPT
-class NoteGPTChat {
-  constructor() {
-    this.streamUrl = 'https://notegpt.io/api/v2/chat/stream';
-    this.conversationId = this.makeId();
-    this.cookie = this.makeCookie();
-    this.headers = {
-      'authority': 'notegpt.io',
-      'accept': '*/*',
-      'content-type': 'application/json',
-      'origin': 'https://notegpt.io',
-      'referer': 'https://notegpt.io/ai-chat',
-      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'cookie': this.cookie
-    };
+// Magic value required by the notegpt.io sbox-guid cookie field
+const NOTEGPT_SBOX_MAGIC = '907803882';
+
+function notegptMakeCookie() {
+  const anonId = crypto.randomUUID();
+  const sbox = Buffer.from(`${Math.floor(Date.now() / 1000)}|${NOTEGPT_SBOX_MAGIC}`).toString('base64');
+  const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000)}`;
+  const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - 2592000)}`;
+  return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
+}
+
+async function handleV1(req, res) {
+  const source = req.method === 'GET' ? req.query : req.body;
+  const { userMessage, lang, model, tone, length, convId } = source;
+
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'no-store');
   }
 
-  makeId() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
   }
 
-  makeCookie() {
-    const anonId = this.makeId();
-    const sbox = Buffer.from(`${Math.floor(Date.now() / 1000)}|907803882`).toString('base64');
-    const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000)}`;
-    const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - 2592000)}`;
-    return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
-  }
+  const conversationId = convId || crypto.randomUUID();
+  const cookie = notegptMakeCookie();
+  const headers = {
+    'authority': 'notegpt.io',
+    'accept': '*/*',
+    'content-type': 'application/json',
+    'origin': 'https://notegpt.io',
+    'referer': 'https://notegpt.io/ai-chat',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'cookie': cookie
+  };
+  const payload = {
+    message: userMessage,
+    language: lang || 'en',
+    model: model || 'gpt-4.1-mini',
+    tone: tone || 'default',
+    length: length || 'moderate',
+    conversation_id: conversationId
+  };
 
-  async chat(message, options = {}) {
-    const payload = {
-      message: message,
-      language: options.lang || 'en',
-      model: options.model || 'gpt-4.1-mini',
-      tone: options.tone || 'default',
-      length: options.length || 'moderate',
-      conversation_id: options.convId || this.conversationId
-    };
+  try {
+    const response = await axios.post('https://notegpt.io/api/v2/chat/stream', payload, { headers, responseType: 'text' });
 
-    const res = await axios.post(this.streamUrl, payload, { headers: this.headers, responseType: 'text' });
-
-    const lines = res.data.split('\n');
+    const lines = response.data.split('\n');
     const texts = [];
 
     lines.forEach(line => {
@@ -242,34 +245,20 @@ class NoteGPTChat {
             if (parsed.text) {
               texts.push(parsed.text);
             }
-          } catch {}
+          } catch (parseErr) {
+            console.error('NoteGPT SSE parse error:', parseErr.message, '| raw:', data);
+          }
         }
       }
     });
 
-    return {
-      success: true,
-      response: texts.join(''),
-      convId: payload.conversation_id
-    };
-  }
-}
-
-async function handleV1(req, res) {
-  const source = req.method === 'GET' ? req.query : req.body;
-  const { userMessage, lang, model, tone, length, convId } = source;
-
-  if (!userMessage || typeof userMessage !== 'string') {
-    return res.status(400).json({ error: 'Message content is required and must be a string' });
-  }
-
-  try {
-    const ai = new NoteGPTChat();
-    const result = await ai.chat(userMessage, { lang, model, tone, length, convId });
+    if (texts.length === 0) {
+      return res.status(500).json({ error: 'NoteGPT returned no content' });
+    }
 
     res.json({
-      reply: result.response,
-      conversation_id: result.convId,
+      reply: texts.join(''),
+      conversation_id: conversationId,
       api: 'NoteGPT'
     });
   } catch (error) {
