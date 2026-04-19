@@ -885,6 +885,48 @@ app.post('/chat/v13', async (req, res) => {
   }
 });
 
+// API Route postel - postel.app chatgpt-alternative
+app.post('/chat/postel', async (req, res) => {
+  const { userMessage, model = "gpt-4o", length = "medium" } = req.body;
+
+  const apiUrl = 'https://www.postel.app/api/chatgpt-alternative/generate';
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://www.postel.app',
+    'Origin': 'https://www.postel.app'
+  };
+
+  if (!userMessage) {
+    return res.status(400).json({ error: "Message content is required" });
+  }
+
+  try {
+    const response = await axios.post(apiUrl, {
+      prompt: userMessage,
+      model: model,
+      length: length
+    }, { headers });
+
+    const data = response.data;
+
+    res.json({
+      reply: data.text || data,
+      wordCount: data.wordCount,
+      model: data.model || model,
+      api: "Postel"
+    });
+
+  } catch (error) {
+    console.error('Postel API Error:', error.response ? error.response.data : error.message);
+
+    res.status(500).json({
+      error: 'Failed to process Postel request',
+      details: error.response?.data?.message || error.message
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
