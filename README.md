@@ -5,6 +5,7 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 ## 📚 Table of Contents
 - [Features](#-features)
 - [API Usage](#-api-usage)
+- [Available Endpoints](#-available-endpoints)
 - [Technologies](#-technologies)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -12,7 +13,7 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ## 🌟 Features
 
-- Seamless integration of multiple chatbot APIs (v1 to v12)
+- Seamless integration of multiple chatbot APIs (v1 to v13)
 - Built with Express.js for robust server-side operations
 - Cross-Origin Resource Sharing (CORS) enabled for web application compatibility
 - Straightforward error handling for improved debugging
@@ -21,12 +22,12 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ### Send a Message to the Chatbot
 
-Send a POST request to the `/chat/v5` endpoint to interact with the chatbot.
+Send a POST request to any `/chat/vN` endpoint to interact with the chatbot.
 
 #### Endpoint
 
 ```
-POST http://localhost:3000/chat/v5
+POST http://localhost:3000/chat/v1
 ```
 
 #### Headers
@@ -46,7 +47,7 @@ Content-Type: application/json
 #### Example Using cURL
 
 ```bash
-curl -X POST http://localhost:3000/chat/v5 \
+curl -X POST http://localhost:3000/chat/v1 \
      -H "Content-Type: application/json" \
      -d '{"userMessage": "Hello, how are you?"}'
 ```
@@ -58,6 +59,24 @@ curl -X POST http://localhost:3000/chat/v5 \
   "reply": "Hello! As an AI language model, I don't have feelings, but I'm functioning well and ready to assist you. How can I help you today?"
 }
 ```
+
+## 🌐 Available Endpoints
+
+| Endpoint | Backed By | Model / Notes |
+|----------|-----------|---------------|
+| `/chat/v1` | [notegpt.io](https://notegpt.io) | GPT-4.1 mini |
+| `/chat/v2` | [ansari.chat](https://ansari.chat) | — |
+| `/chat/v3` | [chateverywhere.app](https://chateverywhere.app) | GPT-3.5 Turbo |
+| `/chat/v4` | [unlimitedai.chat](https://app.unlimitedai.chat) | Reasoning model |
+| `/chat/v5` | [goody2.ai](https://www.goody2.ai) | — |
+| `/chat/v6` | [pinoygpt.com](https://www.pinoygpt.com) | — |
+| `/chat/v7` | [freedomgpt.com](https://chat.freedomgpt.com) | Gemini |
+| `/chat/v8` | [chatwithfiction.com](https://www.chatwithfiction.com) | — |
+| `/chat/v9` | [bookai.chat](https://bookai.chat) | GPT-3.5 Turbo |
+| `/chat/v10` | [chataibot.ru](https://chataibot.ru) | — |
+| `/chat/v11` | [api-zenn.vercel.app](https://api-zenn.vercel.app) | Groq |
+| `/chat/v12` | [phind.com](https://www.phind.com) | Phind Model |
+| `/chat/v13` | [open-gpt.app](https://open-gpt.app) | — |
 
 ## 🛠️ Technologies
 
@@ -71,11 +90,10 @@ We welcome contributions, issues, and feature requests! Check out our [issues pa
 
 ## 📝 License
 
-This project is open source and available under the [GPL-3.0](LICENSE.md).
+This project is open source and available under the [GPL-3.0](LICENSE).
 
 ## 📞 Contact
 
-Your Name
 - GitHub: [@OshekharO](https://github.com/OshekharO)
 - Telegram: [@OshekherO](https://t.me/OshekherO)
 
