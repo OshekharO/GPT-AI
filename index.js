@@ -735,10 +735,16 @@ app.post('/chat/postel', async (req, res) => {
 
     const data = response.data;
 
+    const rawReply = (data && typeof data === 'object') ? (data?.text ?? data) : data;
+    const reply = typeof rawReply === 'string' ? rawReply : JSON.stringify(rawReply);
+    const wordCount = typeof data?.wordCount === 'number'
+      ? data.wordCount
+      : (reply.trim() ? reply.trim().split(/\s+/).length : 0);
+
     res.json({
-      reply: data.text || data,
-      wordCount: data.wordCount,
-      model: data.model || model,
+      reply,
+      wordCount,
+      model: data?.model || model,
       api: "Postel"
     });
 
