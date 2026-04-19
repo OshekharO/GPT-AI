@@ -276,6 +276,7 @@ async function handleV1(req, res) {
 
 app.get('/chat/v1', handleV1);
 app.post('/chat/v1', handleV1);
+
 app.post('/chat/v2', async (req, res) => {
   const { userMessage } = req.body;
 
@@ -380,7 +381,7 @@ app.post('/chat/v4', async (req, res) => {
     res.json({ reply: assistantReply });
   } catch (error) {
     console.error("API Request Error:", error);
-    res.status(500).json({ error: 'Something went wrong with API v5' });
+    res.status(500).json({ error: 'Something went wrong with API v4' });
   }
 });
 
@@ -432,7 +433,7 @@ app.post('/chat/v5', async (req, res) => {
 
   } catch (error) {
     console.error("API Request Error:", error);
-    res.status(500).json({ error: 'Something went wrong with API v6' });
+    res.status(500).json({ error: 'Something went wrong with API v5' });
   }
 });
 
@@ -495,7 +496,7 @@ app.post('/chat/v6', async (req, res) => {
 
   } catch (error) {
     console.error("API Request Error:", error);
-    res.status(500).json({ error: 'Something went wrong with API v7' });
+    res.status(500).json({ error: 'Something went wrong with API v6' });
   }
 });
 
@@ -610,7 +611,7 @@ app.post('/chat/v9', async (req, res) => {
     res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Something went wrong with API v12 (clouflare)' });
+    res.status(500).json({ error: 'Something went wrong with API v9 (clouflare)' });
   }
 });
 
