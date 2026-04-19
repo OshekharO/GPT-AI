@@ -221,7 +221,7 @@ class NoteGPTChat {
   async chat(message, options = {}) {
     const payload = {
       message: message,
-      language: options.lang || 'id',
+      language: options.lang || 'en',
       model: options.model || 'gpt-4.1-mini',
       tone: options.tone || 'default',
       length: options.length || 'moderate',
