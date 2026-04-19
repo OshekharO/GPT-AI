@@ -975,11 +975,15 @@ app.post('/chat/v14', async (req, res) => {
     const pageResponse = await axios.get(pageUrl, { headers: commonHeaders });
     const pageHtml = pageResponse.data;
 
-    const nonceMatch = pageHtml.match(/["']nonce["']\s*:\s*["']([a-f0-9]+)["']/);
+    const nonceMatch = pageHtml.match(/["']nonce["']\s*:\s*["']([a-zA-Z0-9]+)["']/);
     const nonce = nonceMatch ? nonceMatch[1] : '';
 
     const botIdMatch = pageHtml.match(/["']bot_id["']\s*:\s*["']?(\d+)["']?/);
     const botId = botIdMatch ? botIdMatch[1] : '';
+
+    if (!nonce || !botId) {
+      return res.status(500).json({ error: 'Failed to extract required credentials from ChatEspanolAIGratis page' });
+    }
 
     const formData = new URLSearchParams({
       action: 'wpaicg_chat_shortcode_message',
