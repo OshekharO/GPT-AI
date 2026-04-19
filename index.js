@@ -354,33 +354,101 @@ app.post('/chat/v3', async (req, res) => {
   }
 });
 
-// API Route v4 - wewordle.org
+// API Route v4 - unlimitedai.chat
 app.post('/chat/v4', async (req, res) => {
   const { userMessage } = req.body;
-  const apiUrl = 'https://wewordle.org/gptapi/v1/web/turbo';
+  const apiUrl = 'https://app.unlimitedai.chat/api/chat';
 
   const headers = {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'Origin': 'https://echatgpt.org',
-    'Referer': 'https://echatgpt.org/'
+    'x-next-intl-locale': 'en'
   };
 
+  const chatId = crypto.randomUUID();
+  const userMsgId = crypto.randomUUID();
+  const assistantMsgId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
   const body = {
-    "messages": [
+    chatId,
+    messages: [
       {
-        "content": userMessage,
-        "role": "user"
+        id: userMsgId,
+        role: "user",
+        content: userMessage,
+        parts: [{ type: "text", text: userMessage }],
+        createdAt: now
+      },
+      {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        parts: [{ type: "text", text: "" }],
+        createdAt: now
       }
-    ]
+    ],
+    selectedChatModel: "chat-model-reasoning",
+    selectedCharacter: null,
+    selectedStory: null,
+    deviceId: crypto.randomUUID(),
+    locale: "en"
   };
-  
+
   try {
-    const response = await axios.post(apiUrl, body, { headers });
-    const assistantReply = response.data.message.content;
-    res.json({ reply: assistantReply });
+    const response = await axios.post(apiUrl, body, {
+      headers,
+      responseType: 'stream'
+    });
+
+    let fullReply = '';
+    let buffer = '';
+
+    req.on('close', () => {
+      response.data.destroy();
+    });
+
+    response.data.on('data', (chunk) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep the last (potentially incomplete) line
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.type === 'delta' && parsed.delta) {
+            fullReply += parsed.delta;
+          }
+        } catch {
+          // ignore non-JSON lines
+        }
+      });
+    });
+
+    response.data.on('end', () => {
+      if (res.headersSent) return;
+      // process any remaining buffered content
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer.trim());
+          if (parsed.type === 'delta' && parsed.delta) {
+            fullReply += parsed.delta;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      res.json({ reply: fullReply });
+    });
+
+    response.data.on('error', (err) => {
+      console.error("Stream Error:", err);
+      if (res.headersSent) return;
+      res.status(500).json({ error: 'Stream error with API v4' });
+    });
   } catch (error) {
     console.error("API Request Error:", error);
+    if (res.headersSent) return;
     res.status(500).json({ error: 'Something went wrong with API v4' });
   }
 });
