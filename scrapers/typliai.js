@@ -4,11 +4,28 @@ const crypto = require('crypto');
 
 const router = express.Router();
 
+const TYPLI_PAGE_URL = 'https://typli.ai/free-no-sign-up-chatgpt';
+const TYPLI_API_URL = 'https://typli.ai/api/generators/chat';
+const TYPLI_BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36';
+
+async function getTypliSession() {
+  const response = await axios.get(TYPLI_PAGE_URL, {
+    headers: {
+      'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'accept-language': 'en-US,en;q=0.9',
+      'user-agent': TYPLI_BROWSER_UA
+    },
+    maxRedirects: 5
+  });
+
+  const setCookies = response.headers['set-cookie'] || [];
+  const cookieStr = setCookies.map(c => c.split(';')[0]).join('; ');
+  return cookieStr;
+}
+
 // Route typliai
 router.post('/', async (req, res) => {
   const { userMessage, model = "openai/gpt-4o-mini", messages } = req.body;
-
-  const apiUrl = 'https://typli.ai/api/generators/chat';
 
   if (!userMessage || typeof userMessage !== 'string') {
     return res.status(400).json({ 
@@ -25,12 +42,26 @@ router.post('/', async (req, res) => {
   const conversationId = crypto.randomBytes(12).toString('base64url').substring(0, 16);
   const msgId = crypto.randomBytes(9).toString('base64url').substring(0, 12);
 
+  let sessionCookies = '';
+  try {
+    sessionCookies = await getTypliSession();
+  } catch (sessionErr) {
+    console.warn('TypliAI: failed to fetch session cookies:', sessionErr.message);
+  }
+
+  // Build cookie string: session cookies from page GET + CSRF double-submit cookie
+  const csrfCookie = `__Secure-ai-sdk-csrf-token=${csrfToken}`;
+  const cookieHeader = sessionCookies
+    ? `${sessionCookies}; ${csrfCookie}`
+    : csrfCookie;
+
   const headers = {
     'content-type': 'application/json',
-    'user-agent': 'ai-sdk/5.0.150 runtime/browser',
+    'user-agent': TYPLI_BROWSER_UA,
     'x-csrf-token': csrfToken,
+    'cookie': cookieHeader,
     'origin': 'https://typli.ai',
-    'referer': 'https://typli.ai/free-no-sign-up-chatgpt'
+    'referer': TYPLI_PAGE_URL
   };
 
   const allMessages = [...safeMessages, {
@@ -48,7 +79,7 @@ router.post('/', async (req, res) => {
   };
 
   try {
-    const response = await axios.post(apiUrl, payload, { headers, responseType: 'text' });
+    const response = await axios.post(TYPLI_API_URL, payload, { headers, responseType: 'text' });
 
     let reply = '';
     const lines = response.data.split('\n');
@@ -79,8 +110,10 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('TypliAI API Error:', error.response ? error.response.data : error.message);
-    
-    res.status(500).json({ 
+    const upstreamStatus = error.response?.status;
+    const httpStatus = (upstreamStatus >= 400 && upstreamStatus < 600) ? upstreamStatus : 500;
+
+    res.status(httpStatus).json({ 
       error: 'Failed to process TypliAI request',
       details: error.response?.data?.message || error.message
     });
