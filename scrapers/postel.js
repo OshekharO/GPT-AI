@@ -65,7 +65,7 @@ router.post('/', async (req, res) => {
 
   console.error('Postel API Error:', lastError.response ? lastError.response.data : lastError.message);
   const upstreamStatus = lastError.response?.status;
-  const httpStatus = upstreamStatus === 429 ? 429 : 500;
+  const httpStatus = (upstreamStatus >= 400 && upstreamStatus < 600) ? upstreamStatus : 500;
 
   res.status(httpStatus).json({
     error: 'Failed to process Postel request',

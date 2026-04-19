@@ -111,7 +111,9 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('TypliAI API Error:', error.response ? error.response.data : error.message);
     const upstreamStatus = error.response?.status;
-    const httpStatus = (upstreamStatus >= 400 && upstreamStatus < 600) ? upstreamStatus : 500;
+    // Pass through meaningful upstream error codes; avoid leaking auth-specific codes
+    const PASSTHROUGH_CODES = new Set([400, 403, 404, 429, 500, 502, 503, 504]);
+    const httpStatus = PASSTHROUGH_CODES.has(upstreamStatus) ? upstreamStatus : 500;
 
     res.status(httpStatus).json({ 
       error: 'Failed to process TypliAI request',
