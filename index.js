@@ -255,8 +255,9 @@ class NoteGPTChat {
   }
 }
 
-app.post('/chat/v1', async (req, res) => {
-  const { userMessage, lang, model, tone, length, convId } = req.body;
+async function handleV1(req, res) {
+  const source = req.method === 'GET' ? req.query : req.body;
+  const { userMessage, lang, model, tone, length, convId } = source;
 
   if (!userMessage || typeof userMessage !== 'string') {
     return res.status(400).json({ error: 'Message content is required and must be a string' });
@@ -277,9 +278,10 @@ app.post('/chat/v1', async (req, res) => {
       error: error.response?.data?.message || 'Something went wrong with NoteGPT API'
     });
   }
-});
+}
 
-// API Route v2 - AyGemuy wudyver
+app.get('/chat/v1', handleV1);
+app.post('/chat/v1', handleV1);
 app.post('/chat/v2', async (req, res) => {
   const { userMessage } = req.body;
 
