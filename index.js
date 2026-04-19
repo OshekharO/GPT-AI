@@ -185,45 +185,96 @@ app.post('/chat/heckai', async (req, res) => {
   }
 });
 
-// API Route v1 - AyGemuy wudyver
-app.post('/chat/v1', async (req, res) => {
-  const { userMessage } = req.body;
+// API Route v1 - NoteGPT
+class NoteGPTChat {
+  constructor() {
+    this.streamUrl = 'https://notegpt.io/api/v2/chat/stream';
+    this.conversationId = this.makeId();
+    this.cookie = this.makeCookie();
+    this.headers = {
+      'authority': 'notegpt.io',
+      'accept': '*/*',
+      'content-type': 'application/json',
+      'origin': 'https://notegpt.io',
+      'referer': 'https://notegpt.io/ai-chat',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'cookie': this.cookie
+    };
+  }
 
-  const apiUrl = 'https://biblegpt.prasetia.me/api/generate';
-  const headers = {
-    'accept': '*/*',
-    'accept-language': 'id-ID,id;q=0.9',
-    'cache-control': 'no-cache',
-    'content-type': 'application/json',
-    'origin': 'https://biblegpt.prasetia.me',
-    'pragma': 'no-cache',
-    'priority': 'u=1, i',
-    'referer': 'https://biblegpt.prasetia.me/',
-    'sec-ch-ua': '"Chromium";v="131", "Not_A Brand";v="24", "Microsoft Edge Simulate";v="131", "Lemur";v="131"',
-    'sec-ch-ua-mobile': '?1',
-    'sec-ch-ua-platform': '"Android"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36'
-  };
-  const body = {
-    prompt: userMessage
-  };
+  makeId() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  makeCookie() {
+    const anonId = this.makeId();
+    const sbox = Buffer.from(`${Math.floor(Date.now() / 1000)}|907803882`).toString('base64');
+    const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000)}`;
+    const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - 2592000)}`;
+    return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
+  }
+
+  async chat(message, options = {}) {
+    const payload = {
+      message: message,
+      language: options.lang || 'id',
+      model: options.model || 'gpt-4.1-mini',
+      tone: options.tone || 'default',
+      length: options.length || 'moderate',
+      conversation_id: options.convId || this.conversationId
+    };
+
+    const res = await axios.post(this.streamUrl, payload, { headers: this.headers, responseType: 'text' });
+
+    const lines = res.data.split('\n');
+    const texts = [];
+
+    lines.forEach(line => {
+      if (line.startsWith('data: ')) {
+        const data = line.substring(6);
+        if (data.trim()) {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) {
+              texts.push(parsed.text);
+            }
+          } catch {}
+        }
+      }
+    });
+
+    return {
+      success: true,
+      response: texts.join(''),
+      convId: payload.conversation_id
+    };
+  }
+}
+
+app.post('/chat/v1', async (req, res) => {
+  const { userMessage, lang, model, tone, length, convId } = req.body;
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
-    
-    if (!response.data) {
-      throw new Error('No response data received from BibleGPT');
-    }
+    const ai = new NoteGPTChat();
+    const result = await ai.chat(userMessage, { lang, model, tone, length, convId });
 
-    res.json({ reply: response.data });
-
+    res.json({
+      reply: result.response,
+      conversation_id: result.convId,
+      api: 'NoteGPT'
+    });
   } catch (error) {
-    console.error('BibleGPT API Error:', error.response ? error.response.data : error.message);
-    res.status(500).json({ 
-      error: error.response?.data?.message || 'Something went wrong with BibleGPT API' 
+    console.error('NoteGPT API Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({
+      error: error.response?.data?.message || 'Something went wrong with NoteGPT API'
     });
   }
 });
