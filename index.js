@@ -984,12 +984,12 @@ app.post('/chat/v14', async (req, res) => {
     return res.status(400).json({ error: 'Message content is required' });
   }
 
-  const pageUrl = 'https://chatespanolaigratis.com/';
+  const pageUrl = 'https://chatespanolaigratis.com/en/';
   const ajaxUrl = 'https://chatespanolaigratis.com/wp-admin/admin-ajax.php';
   const commonHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Origin': 'https://chatespanolaigratis.com',
-    'Referer': 'https://chatespanolaigratis.com/'
+    'Referer': 'https://chatespanolaigratis.com/en/'
   };
 
   try {
