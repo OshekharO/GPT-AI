@@ -760,15 +760,17 @@ app.post('/chat/postel', async (req, res) => {
 
 // Route typliai
 app.post('/chat/typliai', async (req, res) => {
-  const { userMessage, model = "openai/gpt-4o-mini", messages = [] } = req.body;
+  const { userMessage, model = "openai/gpt-4o-mini", messages } = req.body;
 
   const apiUrl = 'https://typli.ai/api/generators/chat';
 
-  if (!userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') {
     return res.status(400).json({ 
-      error: "Message content is required" 
+      error: "Message content is required and must be a string" 
     });
   }
+
+  const safeMessages = Array.isArray(messages) ? messages : [];
 
   const timestamp = Date.now();
   const BASE36 = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -785,7 +787,7 @@ app.post('/chat/typliai', async (req, res) => {
     'referer': 'https://typli.ai/free-no-sign-up-chatgpt'
   };
 
-  const allMessages = [...messages, {
+  const allMessages = [...safeMessages, {
     parts: [{ type: "text", text: userMessage }],
     id: msgId,
     role: "user"
