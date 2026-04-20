@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const port = 3000;
@@ -8,6 +9,16 @@ const port = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
+
+// Rate limit: 1 request per 10 seconds per IP on all /chat/* routes
+const chatLimiter = rateLimit({
+  windowMs: 10 * 1000,
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait 10 seconds before sending another message.' }
+});
+app.use('/chat/', chatLimiter);
 
 // Mount scrapers
 app.use('/chat/v1', require('./scrapers/v1'));
