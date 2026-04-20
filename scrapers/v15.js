@@ -1,8 +1,19 @@
 const express = require('express');
 const axios = require('axios');
 const { randomUUID } = require('crypto');
+const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
+
+// Rate limit: 1 request per 10 seconds per IP (to avoid triggering Cloudflare)
+const v15Limiter = rateLimit({
+  windowMs: 10 * 1000,
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait 10 seconds before sending another message.' }
+});
+router.use(v15Limiter);
 
 // API Route v15 - QuillBot AI Chat
 router.post('/', async (req, res) => {
