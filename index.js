@@ -9,6 +9,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'GPT-AI API is running' });
+});
+
 // Mount scrapers
 app.use('/chat/v1', require('./scrapers/v1'));
 app.use('/chat/v2', require('./scrapers/v2'));

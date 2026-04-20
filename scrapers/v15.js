@@ -77,8 +77,11 @@ router.post('/', async (req, res) => {
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
+      // SSE events are prefixed with "data: "; strip it before parsing
+      const jsonStr = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed;
+      if (jsonStr === '[DONE]') break;
       try {
-        const parsed = JSON.parse(trimmed);
+        const parsed = JSON.parse(jsonStr);
         if (parsed.type === 'content' && parsed.content) {
           reply += parsed.content;
         }
