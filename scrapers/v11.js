@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
-  const apiUrl = 'https://api-zenn.vercel.app/api/ai/groq';
+  const apiUrl = 'https://text.pollinations.ai/';
   
   if (!userMessage) {
     return res.status(400).json({ 
@@ -16,15 +16,15 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`${apiUrl}?q=${encodeURIComponent(userMessage)}`);
+    const response = await axios.get(`${apiUrl}${encodeURIComponent(userMessage)}?model=llama`);
     
-    if (!response.data?.data) {
-      throw new Error('No valid response data received');
+    if (!response.data) {
+      throw new Error('No valid response received from Pollinations');
     }
 
     res.json({ 
-      reply: response.data.data,
-      api: "groq"
+      reply: response.data,
+      api: "groq (via pollinations/llama)"
     });
 
   } catch (error) {
@@ -32,10 +32,11 @@ router.post('/', async (req, res) => {
     
     res.status(500).json({ 
       error: 'Failed to process Groq request',
-      details: error.response?.data?.message || error.message,
+      details: error.message,
       attempted_query: userMessage
     });
   }
+
 });
 
 module.exports = router;

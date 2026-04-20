@@ -5,49 +5,43 @@ const router = express.Router();
 
 // API Route v13 - OpenGPT
 router.post('/', async (req, res) => {
-  const { userMessage, uid = "clf3yg8730000ih08ndbdi2v4" } = req.body;
+  const { prompt, userMessage } = req.body;
+  const finalMessage = prompt || userMessage;
 
-  const apiUrl = 'https://open-gpt.app/api/generate';
-  const headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
-    'Referer': `https://open-gpt.app/id/app/${uid}`
-  };
-  const body = {
-    userInput: userMessage,
-    id: uid,
-    userKey: ""
-  };
+  const apiUrl = 'https://text.pollinations.ai/';
+  
+  if (!finalMessage) {
+    return res.status(400).json({ 
+      status: "error",
+      message: "No message provided" 
+    });
+  }
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
+    // Migrating from OpenGPT (paywalled) to Pollinations.ai (Mistral model)
+    const response = await axios.get(`${apiUrl}${encodeURIComponent(finalMessage)}?model=mistral`);
     
-    let responseData;
-    if (typeof response.data === 'string') {
-      try {
-        responseData = JSON.parse(response.data);
-      } catch {
-        responseData = response.data;
-      }
-    } else {
-      responseData = response.data;
+    if (!response.data) {
+      throw new Error('No response content received from Pollinations');
     }
 
     res.json({ 
-      reply: responseData,
-      conversation_id: uid,
-      api: "OpenGPT"
+      status: "success",
+      text: response.data,
+      api: "OpenGPT replacement (via pollinations/mistral)"
     });
 
   } catch (error) {
-    console.error('OpenGPT API Error:', error.response ? error.response.data : error.message);
+    console.error('OpenGPT replacement API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process OpenGPT request',
-      details: error.response?.data?.message || error.message,
-      attempted_uid: uid
+      status: "error",
+      message: 'Failed to process OpenGPT replacement request',
+      details: error.message,
+      attempted_query: finalMessage
     });
   }
+
 });
 
 module.exports = router;

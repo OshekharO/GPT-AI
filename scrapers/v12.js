@@ -5,9 +5,9 @@ const router = express.Router();
 
 // API Route v12 - Phind
 router.post('/', async (req, res) => {
-  const { userMessage, systemPrompt = "Be Helpful and Friendly", model = "Phind Model" } = req.body;
+  const { userMessage } = req.body;
 
-  const apiUrl = 'https://https.extension.phind.com/agent/';
+  const apiUrl = 'https://api.airforce/v1/chat/completions';
   
   if (!userMessage) {
     return res.status(400).json({ 
@@ -15,68 +15,33 @@ router.post('/', async (req, res) => {
     });
   }
 
-  const headers = {
-    'content-type': 'application/json',
-    'user-agent': '',
-    'accept': '*/*',
-    'accept-encoding': 'identity'
-  };
-
-  const payload = {
-    additional_extension_context: "",
-    allow_magic_buttons: true,
-    is_vscode_extension: true,
-    message_history: [
-      {
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        role: "user",
-        content: userMessage
-      }
-    ],
-    requested_model: model,
-    user_input: userMessage
-  };
-
   try {
-    const response = await axios.post(apiUrl, payload, { headers });
+    const response = await axios.post(apiUrl, {
+      messages: [{ role: "user", content: userMessage }],
+      model: "gpt-4o-mini"
+    }, {
+      headers: { 'Content-Type': 'application/json' }
+    });
     
-    // Process the stream response
-    const rawData = response.data;
-    const result = rawData.split("\n")
-      .filter(line => line.trim().startsWith("data:"))
-      .map(line => {
-        try {
-          return JSON.parse(line.slice(5).trim());
-        } catch {
-          return null;
-        }
-      })
-      .filter(item => item?.choices?.[0]?.delta?.content)
-      .map(item => item.choices[0].delta.content)
-      .join("");
-
-    if (!result) {
-      throw new Error('No valid response content received');
+    if (!response.data?.choices?.[0]?.message?.content) {
+      throw new Error('No valid response content received from Airforce');
     }
 
     res.json({ 
-      reply: result,
-      model_used: model,
-      response_type: 'stream_processed'
+      reply: response.data.choices[0].message.content,
+      api: "phind (via airforce/gpt-4o-mini)"
     });
 
   } catch (error) {
-    console.error('Phind API Error:', error.response ? error.response.data : error.message);
+    console.error('Phind/Airforce API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
       error: 'Failed to process Phind request',
-      details: error.response?.data?.message || error.message,
-      attempted_model: model
+      details: error.response?.data?.error?.message || error.message,
+      attempted_model: "gpt-4o-mini"
     });
   }
+
 });
 
 module.exports = router;
