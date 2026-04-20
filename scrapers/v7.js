@@ -1,58 +1,72 @@
 const express = require('express');
 const axios = require('axios');
 
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
 const router = express.Router();
 
 // API Route v7 - freedomgpt.com
 router.post('/', async (req, res) => {
   const { userMessage } = req.body;
 
-  const apiUrl = 'https://chat.freedomgpt.com/api/gemini';
+  const apiUrl = 'https://chat.freedomgpt.com/api/v1/chat/completions';
   const headers = {
     'content-type': 'application/json',
     // need to change authorization key frequently
-    'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImMxNTQwYWM3MWJiOTJhYTA2OTNjODI3MTkwYWNhYmU1YjA1NWNiZWMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiU2Frc2hhbSBTaGVraGVyIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0laVGJCWjdpcEs4aWFubktBSGNfem9zOVdYOU1tVVVNdG9YeG9XY0JteXd4U251cTNuPXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZyZWVkb20tZ3B0IiwiYXVkIjoiZnJlZWRvbS1ncHQiLCJhdXRoX3RpbWUiOjE3MjEyNzU1NTcsInVzZXJfaWQiOiJqUEhxVlYxbG9BWHhDeTlXdmdzMDNWc0lrZ2oxIiwic3ViIjoialBIcVZWMWxvQVh4Q3k5V3ZnczAzVnNJa2dqMSIsImlhdCI6MTcyMTM1NDUwNCwiZXhwIjoxNzIxMzU4MTA0LCJlbWFpbCI6Im9tZWVwZDAwOUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI5Nzk5ODcxOTEyMDIwMzc5NiJdLCJlbWFpbCI6WyJvbWVlcGQwMDlAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.hqArMQbO5GGrmRdGNB7sCHAApT4smVcyRQTHD1cCf1OvdRbqezOXePUutval4bH298pYaj1s1xelWUGmO1TpMxxu--tEBqUzMoBOARFrFU2rrN48ElYo9NZD6vtkEgpRnEMIWliMj7WklS6ih9eTwH5Tzp3EDVQZ9iAuWtVqe2tlrLSFsBu6hfT86yyWiTFKu8tdrM-rTP0ieCJ_TuqIElxwvoV78SBPr9NFOTw4WEz80vpXIcs3-joam34npNOa__xzlvJOoW6GZHbmKvZUodsxP7_6zmDKL0bNxIAlvfsj83PQg1-gJ5KLwEeHCxGvwpWDQHCUVTNIIb7NIZKtsQ',
+    'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjcwZmM5YzU0YjhiMjQyMWZmMTgyOTgxNTQyZmQ0NjRlOWJlYzM1NDUiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiU2Frc2hhbSBTaGVraGVyIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0laVGJCWjdpcEs4aWFubktBSGNfem9zOVdYOU1tVVVNdG9YeG9XY0JteXd4U251cTNuPXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZyZWVkb20tZ3B0IiwiYXVkIjoiZnJlZWRvbS1ncHQiLCJhdXRoX3RpbWUiOjE3NzY2NjcxODYsInVzZXJfaWQiOiJqUEhxVlYxbG9BWHhDeTlXdmdzMDNWc0lrZ2oxIiwic3ViIjoialBIcVZWMWxvQVh4Q3k5V3ZnczAzVnNJa2dqMSIsImlhdCI6MTc3NjY2NzE4NiwiZXhwIjoxNzc2NjcwNzg2LCJlbWFpbCI6Im9tZWVwZDAwOUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI5Nzk5ODcxOTEyMDIwMzc5NiJdLCJlbWFpbCI6WyJvbWVlcGQwMDlAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.lFeECWLzbc_iwZo3dKP9rpsPlkY612b5Mk-7L6_6TEMmJHnyXu2driMUS-ShZ0RCOMsNdlKPIklyhB96WxBM1D9WWzxI7-cLhJSgBkjHrKxu4byKSdBCTZ8e1-KjYaC2BFmS9465dpIeCzemSIDgyyQ6OuQdJcEGrwnzE9MTZ9RKqOfzH46W2nTBUZXmgFeXbz3xLgD3_GkveVBgr3Ire_CAat5BuIzNHGNy1P-K1VcGERLZ7eebdBB5Vn3QXwfez7FcwnMDHvBGpXbLPh7X515A24RqwdOrfAkvdeNo8szjwkXsweRJmTdtVwSvgkshBXGL3zvBRS2sqNwtqeZ-OA',
+    'x-fingerprint': 'f819a164d0018a61dae32bb14a97304ad5e68ade50df4f62f4a0d9b7ca550e82',
+    'x-raw-fingerprint': '0abb4db8616f6397bde49e921ceb8172',
     'referer': 'https://chat.freedomgpt.com/',
     'origin': 'https://chat.freedomgpt.com'
   };
   const body = {
     "model": {
-      "defaultSummaryPrompt": "You are an expert in summarizing chat transcripts.\n      Your goal is to create a summary of the transcript.\n\n      Below you find the transcript of the chat:\n      --------\n      {transcript}\n      --------\n\n      Total output will be a summary of the transcript.",
-      "type": [
-        "text"
-      ],
-      "enabled": true,
-      "description": "Google Gemini Pro",
-      "defaultPrompt": "Follow the user's instructions carefully.",
-      "endpoint": "api/gemini",
-      "hasInfiniteMode": true,
-      "isNew": false,
-      "tokenLimit": 4000,
-      "maxLength": 12000,
-      "firstMessageCost": 8,
-      "name": "Google Gemini",
-      "inputCost": 0.002,
-      "image": "https://firebasestorage.googleapis.com/v0/b/freedom-gpt.appspot.com/o/000freedomgpt_models%2F5f112c652762100f2cd30c6ea6282c76.png?alt=media&token=2f83df23-e173-40c1-8f62-149a37c31170&_gl=1*17qwr7d*_ga*MTEzMTE1OTY3LjE2Nzc1MjI4MDE.*_ga_CW55HF8NVT*MTY5OTM4OTM4MC40MjkuMS4xNjk5Mzg5MzkyLjQ4LjAuMA..",
-      "hasSettings": true,
-      "tags": [
-        "all"
-      ],
-      "outputCost": 0.004,
-      "id": "gemini"
+      "id": "claude-opus-4.7"
     },
-    "prompt": "Follow the user's instructions carefully.",
-    "question": userMessage,
     "messages": [
       {
         "role": "user",
-        "content": userMessage
+        "content": userMessage,
+        "id": uuidv4(),
+        "createdAt": new Date().toISOString()
       }
-    ]
+    ],
+    "temperature": 0,
+    "customPrompt": false,
+    "includeMemory": true
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
-    let replyText = response.data;
+    const response = await axios.post(apiUrl, body, {
+      headers,
+      responseType: 'stream'
+    });
+
+    let replyText = '';
+
+    await new Promise((resolve, reject) => {
+      response.data.on('data', (chunk) => {
+        const lines = chunk.toString().split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') return;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed?.choices?.[0]?.delta?.content;
+            if (content) replyText += content;
+          } catch (_) {}
+        }
+      });
+      response.data.on('end', resolve);
+      response.data.on('error', reject);
+    });
+
     res.json({ reply: replyText });
   } catch (error) {
     console.error(error.response ? error.response.data : error.message);
