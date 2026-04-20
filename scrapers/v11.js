@@ -18,28 +18,26 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Migrated from Airforce to Pollinations for stability
-    const response = await axios.get(`${apiUrl}${encodeURIComponent(finalMessage)}?model=mistral`);
+    const response = await axios.get(`${apiUrl}${encodeURIComponent(userMessage)}?model=llama`);
     
     if (!response.data) {
-      throw new Error('No response content received from Pollinations');
+      throw new Error('No valid response received from Pollinations');
     }
 
     res.json({ 
       reply: response.data,
-      api: "groq replacement (via pollinations/mistral)"
+      api: "groq (via pollinations/llama)"
     });
 
   } catch (error) {
     console.error('v11 API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      status: "error",
-      message: 'Failed to process request',
-      details: error.message
+      error: 'Failed to process Groq request',
+      details: error.message,
+      attempted_query: userMessage
     });
   }
-
 
 });
 

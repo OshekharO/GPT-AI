@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Migrated from Airforce to Pollinations for stability
+    // Migrating from OpenGPT (paywalled) to Pollinations.ai (Mistral model)
     const response = await axios.get(`${apiUrl}${encodeURIComponent(finalMessage)}?model=mistral`);
     
     if (!response.data) {
@@ -26,21 +26,21 @@ router.post('/', async (req, res) => {
     }
 
     res.json({ 
-      reply: response.data,
+      status: "success",
+      text: response.data,
       api: "OpenGPT replacement (via pollinations/mistral)"
     });
 
   } catch (error) {
-    console.error('v13 API Error:', error.response ? error.response.data : error.message);
+    console.error('OpenGPT replacement API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
       status: "error",
-      message: 'Failed to process request',
-      details: error.message
+      message: 'Failed to process OpenGPT replacement request',
+      details: error.message,
+      attempted_query: finalMessage
     });
   }
-
-
 
 });
 
