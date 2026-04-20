@@ -14,6 +14,8 @@ app.get('/', (req, res) => {
 });
 
 // Mount scrapers
+
+app.use('/chat/v0', require('./scrapers/v0'));
 app.use('/chat/v1', require('./scrapers/v1'));
 app.use('/chat/v2', require('./scrapers/v2'));
 app.use('/chat/v3', require('./scrapers/v3'));
