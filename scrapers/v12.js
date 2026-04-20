@@ -5,78 +5,44 @@ const router = express.Router();
 
 // API Route v12 - Phind
 router.post('/', async (req, res) => {
-  const { userMessage, systemPrompt = "Be Helpful and Friendly", model = "Phind Model" } = req.body;
+  const { prompt, userMessage } = req.body;
+  const finalMessage = prompt || userMessage;
 
-  const apiUrl = 'https://https.extension.phind.com/agent/';
+  const apiUrl = 'https://text.pollinations.ai/';
   
-  if (!userMessage) {
+  if (!finalMessage) {
     return res.status(400).json({ 
-      error: "Message content is required" 
+      status: "error",
+      message: "Message content is required" 
     });
   }
 
-  const headers = {
-    'content-type': 'application/json',
-    'user-agent': '',
-    'accept': '*/*',
-    'accept-encoding': 'identity'
-  };
-
-  const payload = {
-    additional_extension_context: "",
-    allow_magic_buttons: true,
-    is_vscode_extension: true,
-    message_history: [
-      {
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        role: "user",
-        content: userMessage
-      }
-    ],
-    requested_model: model,
-    user_input: userMessage
-  };
-
   try {
-    const response = await axios.post(apiUrl, payload, { headers });
+    // Using Pollinations.ai with Qwen-Coder model to provide a Phind-like (coding) experience
+    const response = await axios.get(`${apiUrl}${encodeURIComponent(finalMessage)}?model=qwen-coder`);
     
-    // Process the stream response
-    const rawData = response.data;
-    const result = rawData.split("\n")
-      .filter(line => line.trim().startsWith("data:"))
-      .map(line => {
-        try {
-          return JSON.parse(line.slice(5).trim());
-        } catch {
-          return null;
-        }
-      })
-      .filter(item => item?.choices?.[0]?.delta?.content)
-      .map(item => item.choices[0].delta.content)
-      .join("");
-
-    if (!result) {
-      throw new Error('No valid response content received');
+    if (!response.data) {
+      throw new Error('No response content received from Pollinations');
     }
 
     res.json({ 
-      reply: result,
-      model_used: model,
-      response_type: 'stream_processed'
+      status: "success",
+      text: response.data,
+      api: "phind (via pollinations/qwen-coder)",
+      model_used: "qwen-coder"
     });
 
   } catch (error) {
-    console.error('Phind API Error:', error.response ? error.response.data : error.message);
+    console.error('Phind/Pollinations API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process Phind request',
-      details: error.response?.data?.message || error.message,
-      attempted_model: model
+      status: "error",
+      message: 'Failed to process Phind request',
+      details: error.message,
+      attempted_model: "Phind Model (Mapped to Qwen-Coder)"
     });
   }
+
 });
 
 module.exports = router;
