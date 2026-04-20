@@ -13,7 +13,7 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ## 🌟 Features
 
-- Seamless integration of multiple chatbot APIs (v1 to v13)
+- Seamless integration of multiple chatbot APIs (v1 to v14)
 - Built with Express.js for robust server-side operations
 - Cross-Origin Resource Sharing (CORS) enabled for web application compatibility
 - Straightforward error handling for improved debugging
@@ -70,13 +70,14 @@ curl -X POST http://localhost:3000/chat/v1 \
 | `/chat/v4` | [unlimitedai.chat](https://app.unlimitedai.chat) | Reasoning model |
 | `/chat/v5` | [goody2.ai](https://www.goody2.ai) | — |
 | `/chat/v6` | [pinoygpt.com](https://www.pinoygpt.com) | — |
-| `/chat/v7` | [freedomgpt.com](https://chat.freedomgpt.com) | Gemini |
+| `/chat/v7` | [freedomgpt.com](https://chat.freedomgpt.com) | Claude Opus 4.7 |
 | `/chat/v8` | [chatwithfiction.com](https://www.chatwithfiction.com) | — |
 | `/chat/v9` | [bookai.chat](https://bookai.chat) | GPT-3.5 Turbo |
-| `/chat/v10` | [chataibot.ru](https://chataibot.ru) | — |
+| `/chat/v10` | [pollinations.ai](https://text.pollinations.ai) | OpenAI |
 | `/chat/v11` | [freeassist.ai](https://freeassist.ai) | GPT-5-nano |
-| `/chat/v12` | [phind.com](https://www.phind.com) | Phind Model |
-| `/chat/v13` | [open-gpt.app](https://open-gpt.app) | — |
+| `/chat/v12` | [api.airforce](https://api.airforce) | GPT-4o-mini |
+| `/chat/v13` | [freeassist.ai](https://freeassist.ai) | GPT-5-mini |
+| `/chat/v14` | [chataibot.ru](https://chataibot.ru) | — |
 
 ## 🛠️ Technologies
 
