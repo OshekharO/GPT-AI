@@ -74,7 +74,7 @@ curl -X POST http://localhost:3000/chat/v1 \
 | `/chat/v8` | [chatwithfiction.com](https://www.chatwithfiction.com) | — |
 | `/chat/v9` | [bookai.chat](https://bookai.chat) | GPT-3.5 Turbo |
 | `/chat/v10` | [chataibot.ru](https://chataibot.ru) | — |
-| `/chat/v11` | [qcpujeurnkbvwlvmylyx.supabase.co](https://qcpujeurnkbvwlvmylyx.supabase.co) | GPT-5-nano |
+| `/chat/v11` | [freeassist.ai](https://freeassist.ai) | GPT-5-nano |
 | `/chat/v12` | [phind.com](https://www.phind.com) | Phind Model |
 | `/chat/v13` | [open-gpt.app](https://open-gpt.app) | — |
 
