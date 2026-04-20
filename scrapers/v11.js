@@ -5,13 +5,15 @@ const router = express.Router();
 
 // API Route v11 - groq
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { prompt, userMessage } = req.body;
+  const finalMessage = prompt || userMessage;
 
   const apiUrl = 'https://text.pollinations.ai/';
   
-  if (!userMessage) {
+  if (!finalMessage) {
     return res.status(400).json({ 
-      error: "No message provided" 
+      status: "error",
+      message: "No message provided" 
     });
   }
 
@@ -28,7 +30,7 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Groq API Error:', error.response ? error.response.data : error.message);
+    console.error('v11 API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
       error: 'Failed to process Groq request',
