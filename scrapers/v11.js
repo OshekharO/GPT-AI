@@ -1,41 +1,64 @@
 const express = require('express');
 const axios = require('axios');
+const { randomUUID } = require('crypto');
 
 const router = express.Router();
 
-// API Route v11 - groq
+// API Route v11 - Supabase/gpt-5-nano
 router.post('/', async (req, res) => {
-  const { prompt, userMessage } = req.body;
-  const finalMessage = prompt || userMessage;
+  const { userMessage } = req.body;
 
-  const apiUrl = 'https://text.pollinations.ai/';
-  
-  if (!finalMessage) {
+  const apiUrl = 'https://qcpujeurnkbvwlvmylyx.supabase.co/functions/v1/chat';
+
+  if (!userMessage) {
     return res.status(400).json({ 
-      status: "error",
-      message: "No message provided" 
+      error: "No message provided" 
     });
   }
 
   try {
-    const response = await axios.get(`${apiUrl}${encodeURIComponent(userMessage)}?model=llama`);
-    
-    if (!response.data) {
-      throw new Error('No valid response received from Pollinations');
+    const response = await axios.post(apiUrl, {
+      messages: [{ role: "user", content: userMessage }],
+      model: "openai/gpt-5-nano",
+      anonymousUserId: randomUUID(),
+      isContinuation: false
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      responseType: 'text'
+    });
+
+    const lines = response.data.split('\n');
+    let reply = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const dataStr = trimmed.slice(5).trim();
+      if (dataStr === '[DONE]') break;
+      try {
+        const parsed = JSON.parse(dataStr);
+        const content = parsed?.choices?.[0]?.delta?.content;
+        if (content) reply += content;
+      } catch {
+        // skip malformed chunks
+      }
+    }
+
+    if (!reply) {
+      throw new Error('No valid response content received');
     }
 
     res.json({ 
-      reply: response.data,
-      api: "groq (via pollinations/llama)"
+      reply,
+      api: "supabase/gpt-5-nano"
     });
 
   } catch (error) {
     console.error('v11 API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process Groq request',
-      details: error.message,
-      attempted_query: userMessage
+      error: 'Failed to process request',
+      details: error.message
     });
   }
 
