@@ -5,37 +5,43 @@ const router = express.Router();
 
 // API Route v11 - groq
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { prompt, userMessage } = req.body;
+  const finalMessage = prompt || userMessage;
 
-  const apiUrl = 'https://api-zenn.vercel.app/api/ai/groq';
+  const apiUrl = 'https://text.pollinations.ai/';
   
-  if (!userMessage) {
+  if (!finalMessage) {
     return res.status(400).json({ 
-      error: "No message provided" 
+      status: "error",
+      message: "No message provided" 
     });
   }
 
   try {
-    const response = await axios.get(`${apiUrl}?q=${encodeURIComponent(userMessage)}`);
+    // Using Pollinations.ai with Llama model to provide a Groq-like experience
+    const response = await axios.get(`${apiUrl}${encodeURIComponent(finalMessage)}?model=llama`);
     
-    if (!response.data?.data) {
-      throw new Error('No valid response data received');
+    if (!response.data) {
+      throw new Error('No response content received from Pollinations');
     }
 
     res.json({ 
-      reply: response.data.data,
-      api: "groq"
+      status: "success",
+      text: response.data,
+      api: "groq (via pollinations/llama)"
     });
 
   } catch (error) {
-    console.error('Groq API Error:', error.response ? error.response.data : error.message);
+    console.error('Groq/Pollinations API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      error: 'Failed to process Groq request',
-      details: error.response?.data?.message || error.message,
-      attempted_query: userMessage
+      status: "error",
+      message: 'Failed to process Groq request',
+      details: error.message,
+      attempted_query: finalMessage
     });
   }
+
 });
 
 module.exports = router;
