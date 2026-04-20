@@ -1,44 +1,64 @@
 const express = require('express');
 const axios = require('axios');
+const { randomUUID } = require('crypto');
 
 const router = express.Router();
 
-// API Route v13 - OpenGPT
+// API Route v11 - Supabase/gpt-5-nano
 router.post('/', async (req, res) => {
-  const { prompt, userMessage } = req.body;
-  const finalMessage = prompt || userMessage;
+  const { userMessage } = req.body;
 
-  const apiUrl = 'https://text.pollinations.ai/';
-  
-  if (!finalMessage) {
+  const apiUrl = 'https://qcpujeurnkbvwlvmylyx.supabase.co/functions/v1/chat';
+
+  if (!userMessage) {
     return res.status(400).json({ 
-      status: "error",
-      message: "No message provided" 
+      error: "No message provided" 
     });
   }
 
   try {
-    // Migrating from OpenGPT (paywalled) to Pollinations.ai (Mistral model)
-    const response = await axios.get(`${apiUrl}${encodeURIComponent(finalMessage)}?model=mistral`);
-    
-    if (!response.data) {
-      throw new Error('No response content received from Pollinations');
+    const response = await axios.post(apiUrl, {
+      messages: [{ role: "user", content: userMessage }],
+      model: "openai/gpt-5-mini",
+      anonymousUserId: randomUUID(),
+      isContinuation: false
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      responseType: 'text'
+    });
+
+    const lines = response.data.split('\n');
+    let reply = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const dataStr = trimmed.slice(5).trim();
+      if (dataStr === '[DONE]') break;
+      try {
+        const parsed = JSON.parse(dataStr);
+        const content = parsed?.choices?.[0]?.delta?.content;
+        if (content) reply += content;
+      } catch {
+        // skip malformed chunks
+      }
+    }
+
+    if (!reply) {
+      throw new Error('No valid response content received');
     }
 
     res.json({ 
-      status: "success",
-      text: response.data,
-      api: "OpenGPT replacement (via pollinations/mistral)"
+      reply,
+      api: "supabase/gpt-5-mini"
     });
 
   } catch (error) {
-    console.error('OpenGPT replacement API Error:', error.response ? error.response.data : error.message);
+    console.error('v13 API Error:', error.response ? error.response.data : error.message);
     
     res.status(500).json({ 
-      status: "error",
-      message: 'Failed to process OpenGPT replacement request',
-      details: error.message,
-      attempted_query: finalMessage
+      error: 'Failed to process request',
+      details: error.message
     });
   }
 
