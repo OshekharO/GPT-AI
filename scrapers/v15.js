@@ -2,7 +2,6 @@ const express = require('express');
 const axios = require('axios');
 const { randomUUID } = require('crypto');
 const rateLimit = require('express-rate-limit');
-const { DeviceProfiles } = require('@denniskrol/device-profiles');
 
 const router = express.Router();
 
@@ -16,10 +15,18 @@ const v15Limiter = rateLimit({
 });
 router.use(v15Limiter);
 
-// Build a realistic sec-ch-ua header string from userAgentData brands
-function buildSecChUa(brands) {
-  if (!brands || brands.length === 0) return undefined;
-  return brands.map(b => `"${b.brand}";v="${b.version}"`).join(', ');
+// Mobile user agents are less likely to be flagged by Cloudflare bot-detection
+// when requests originate from a datacenter IP.
+const MOBILE_USER_AGENTS = [
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (Linux; Android 13; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1',
+];
+
+function randomMobileUA() {
+  return MOBILE_USER_AGENTS[Math.floor(Math.random() * MOBILE_USER_AGENTS.length)];
 }
 
 // API Route v15 - QuillBot AI Chat
@@ -29,10 +36,6 @@ router.post('/', async (req, res) => {
   if (!userMessage) {
     return res.status(400).json({ error: 'No message provided' });
   }
-
-  // Pick a weighted-random desktop profile for realistic fingerprinting
-  const profile = DeviceProfiles.random({ deviceType: 'desktop' });
-  const uaData = profile.userAgentData;
 
   const conversationId = randomUUID();
   const apiUrl = `https://quillbot.com/api/ai-chat/chat/conversation/${conversationId}`;
@@ -47,15 +50,10 @@ router.post('/', async (req, res) => {
     'qb-product': 'AI-CHAT',
     'Origin': 'https://quillbot.com',
     'Referer': 'https://quillbot.com/',
-    'User-Agent': profile.userAgent,
+    'User-Agent': randomMobileUA(),
     'sec-fetch-dest': 'empty',
     'sec-fetch-mode': 'cors',
     'sec-fetch-site': 'same-origin',
-    ...(uaData && {
-      'sec-ch-ua': buildSecChUa(uaData.brands),
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': `"${uaData.platform}"`
-    })
   };
 
   const body = {
