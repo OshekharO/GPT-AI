@@ -41,7 +41,6 @@ router.post('/', async (req, res) => {
     'Content-Type': 'application/json',
     'Accept': 'text/event-stream',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
     'useridtoken': 'empty-token',
     'webapp-version': '41.23.0',
     'platform-type': 'webapp',
@@ -68,10 +67,18 @@ router.post('/', async (req, res) => {
   try {
     const response = await axios.post(apiUrl, body, {
       headers,
-      responseType: 'text'
+      responseType: 'stream',
+      timeout: 25000
     });
 
-    const lines = response.data.split('\n');
+    const responseText = await new Promise((resolve, reject) => {
+      const chunks = [];
+      response.data.on('data', chunk => chunks.push(chunk));
+      response.data.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+      response.data.on('error', reject);
+    });
+
+    const lines = responseText.split('\n');
     let reply = '';
 
     for (const line of lines) {
@@ -97,10 +104,18 @@ router.post('/', async (req, res) => {
     res.json({ reply, api: 'QuillBot' });
 
   } catch (error) {
-    console.error('QuillBot API Error:', error.response ? error.response.data : error.message);
-    res.status(500).json({
-      error: error.response?.data?.message || 'Something went wrong with QuillBot API'
-    });
+    let errorDetail = error.message;
+    if (error.response) {
+      const chunks = [];
+      await new Promise((resolve, reject) => {
+        error.response.data.on('data', c => chunks.push(c));
+        error.response.data.on('end', resolve);
+        error.response.data.on('error', reject);
+      }).catch(() => {});
+      errorDetail = `HTTP ${error.response.status}: ${Buffer.concat(chunks).toString('utf-8')}`;
+    }
+    console.error('QuillBot API Error:', errorDetail);
+    res.status(500).json({ error: 'Something went wrong with QuillBot API' });
   }
 });
 
