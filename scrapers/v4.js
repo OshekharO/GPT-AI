@@ -6,7 +6,12 @@ const router = express.Router();
 
 // API Route v4 - unlimitedai.chat
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
+
   const apiUrl = 'https://app.unlimitedai.chat/api/chat';
 
   const headers = {
@@ -51,36 +56,45 @@ router.post('/', async (req, res) => {
     });
 
     let fullReply = '';
-    let buffer = '';
+    let lineBuffer = '';
 
-    req.on('close', () => {
-      response.data.destroy();
-    });
+    const cleanup = () => {
+      req.removeListener('close', onClose);
+    };
+
+    const onClose = () => {
+      if (response.data && typeof response.data.destroy === 'function') {
+        response.data.destroy();
+      }
+    };
+
+    req.on('close', onClose);
 
     response.data.on('data', (chunk) => {
-      buffer += chunk.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep the last (potentially incomplete) line
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
+      lineBuffer += chunk.toString();
+      let newlineIdx;
+      while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, newlineIdx).trim();
+        lineBuffer = lineBuffer.slice(newlineIdx + 1);
+        if (!line) continue;
         try {
-          const parsed = JSON.parse(trimmed);
+          const parsed = JSON.parse(line);
           if (parsed.type === 'delta' && parsed.delta) {
             fullReply += parsed.delta;
           }
         } catch {
           // ignore non-JSON lines
         }
-      });
+      }
     });
 
     response.data.on('end', () => {
+      cleanup();
       if (res.headersSent) return;
       // process any remaining buffered content
-      if (buffer.trim()) {
+      if (lineBuffer.trim()) {
         try {
-          const parsed = JSON.parse(buffer.trim());
+          const parsed = JSON.parse(lineBuffer.trim());
           if (parsed.type === 'delta' && parsed.delta) {
             fullReply += parsed.delta;
           }
@@ -92,6 +106,7 @@ router.post('/', async (req, res) => {
     });
 
     response.data.on('error', (err) => {
+      cleanup();
       console.error("Stream Error:", err);
       if (res.headersSent) return;
       res.status(500).json({ error: 'Stream error with API v4' });

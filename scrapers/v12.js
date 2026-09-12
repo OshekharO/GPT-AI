@@ -5,15 +5,15 @@ const router = express.Router();
 
 // API Route v12 - Phind
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
 
-  const apiUrl = 'https://api.airforce/v1/chat/completions';
-  
-  if (!userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') {
     return res.status(400).json({ 
-      error: "Message content is required" 
+      error: "Message content is required and must be a string"
     });
   }
+
+  const apiUrl = 'https://api.airforce/v1/chat/completions';
 
   try {
     const response = await axios.post(apiUrl, {
@@ -34,7 +34,7 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Phind/Airforce API Error:', error.response ? error.response.data : error.message);
-    
+    if (res.headersSent) return;
     res.status(500).json({ 
       error: 'Failed to process Phind request',
       details: error.response?.data?.error?.message || error.message,

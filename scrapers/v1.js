@@ -19,9 +19,9 @@ function notegptMakeCookie() {
 
 async function handleV1(req, res) {
   const source = req.method === 'GET' ? req.query : req.body;
-  const { lang, model, tone, length, convId } = source;
+  const { lang, model, tone, length, convId } = source || {};
   // Coerce userMessage to string to handle array values from repeated query params
-  const rawMessage = source.userMessage;
+  const rawMessage = source ? source.userMessage : undefined;
   const userMessage = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
 
   if (req.method === 'GET') {
@@ -55,10 +55,13 @@ async function handleV1(req, res) {
   try {
     const response = await axios.post('https://notegpt.io/api/v2/chat/stream', payload, { headers, responseType: 'text' });
 
-    const lines = response.data.split('\n');
+    let lineBuffer = response.data || '';
     const texts = [];
+    let newlineIdx;
 
-    lines.forEach(line => {
+    while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+      const line = lineBuffer.slice(0, newlineIdx).trim();
+      lineBuffer = lineBuffer.slice(newlineIdx + 1);
       if (line.startsWith('data: ')) {
         const data = line.substring(6);
         if (data.trim()) {
@@ -72,7 +75,19 @@ async function handleV1(req, res) {
           }
         }
       }
-    });
+    }
+
+    if (lineBuffer.trim().startsWith('data: ')) {
+      const data = lineBuffer.trim().substring(6);
+      if (data.trim()) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.text) {
+            texts.push(parsed.text);
+          }
+        } catch (_) {}
+      }
+    }
 
     if (texts.length === 0) {
       return res.status(500).json({ error: 'NoteGPT returned no content' });
@@ -85,6 +100,7 @@ async function handleV1(req, res) {
     });
   } catch (error) {
     console.error('NoteGPT API Error:', error.response ? error.response.data : error.message);
+    if (res.headersSent) return;
     res.status(500).json({
       error: error.response?.data?.message || 'Something went wrong with NoteGPT API'
     });

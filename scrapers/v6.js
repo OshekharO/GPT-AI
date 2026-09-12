@@ -5,7 +5,12 @@ const router = express.Router();
 
 // API Route v6 - PinoyGPT
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
+
   const apiUrl = 'https://www.pinoygpt.com/wp-json/mwai-ui/v1/chats/submit';
 
   const headers = {
@@ -37,31 +42,55 @@ router.post('/', async (req, res) => {
     });
 
     let fullReply = '';
+    let lineBuffer = '';
+
+    const cleanup = () => {
+      req.removeListener('close', onClose);
+    };
+
+    const onClose = () => {
+      if (response.data && typeof response.data.destroy === 'function') {
+        response.data.destroy();
+      }
+    };
+
+    req.on('close', onClose);
 
     response.data.on('data', (chunk) => {
-      const lines = chunk.toString().split('\n');
-      lines.forEach(line => {
+      lineBuffer += chunk.toString();
+      let newlineIdx;
+      while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, newlineIdx).trim();
+        lineBuffer = lineBuffer.slice(newlineIdx + 1);
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.type === 'live' && data.data) {
               fullReply += data.data;
-            } else if (data.type === 'end') {
-              // handle end of stream here if needed
             }
           } catch (error) {
-            console.error("Error parsing SSE data:", error);
+            console.error("Error parsing SSE data in v6:", error.message);
           }
         }
-      });
+      }
     });
 
     response.data.on('end', () => {
+      cleanup();
+      if (res.headersSent) return;
       res.json({ reply: fullReply.trim() });
     });
 
+    response.data.on('error', (err) => {
+      cleanup();
+      console.error("Stream Error in v6:", err.message);
+      if (res.headersSent) return;
+      res.status(500).json({ error: 'Something went wrong with API v6' });
+    });
+
   } catch (error) {
-    console.error("API Request Error:", error);
+    console.error("API Request Error v6:", error.message);
+    if (res.headersSent) return;
     res.status(500).json({ error: 'Something went wrong with API v6' });
   }
 });

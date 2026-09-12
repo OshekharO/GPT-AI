@@ -5,7 +5,11 @@ const router = express.Router();
 
 // API Route v2 - Anshari
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
 
   const apiUrl = 'https://api.ansari.chat/api/v1/complete';
   const headers = {
@@ -34,7 +38,8 @@ router.post('/', async (req, res) => {
     res.json({ reply: response.data });
 
   } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
+    console.error('Anshari API Error:', error.response ? error.response.data : error.message);
+    if (res.headersSent) return;
     res.status(500).json({ 
       error: error.response?.data?.message || 'Something went wrong with Anshari API' 
     });
