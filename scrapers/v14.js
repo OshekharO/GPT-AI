@@ -3,9 +3,13 @@ const axios = require('axios');
 
 const router = express.Router();
 
-// API Route v10 - chataibot.ru
+// API Route v14 - chataibot.ru
 router.post('/', async (req, res) => {
-  const { userMessage, messages = [], ...rest } = req.body;
+  const { userMessage, messages = [], ...rest } = req.body || {};
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
 
   const apiUrl = 'https://chataibot.ru/api/promo-chat/messages';
   const headers = {
@@ -16,7 +20,7 @@ router.post('/', async (req, res) => {
   };
 
   // Prepare messages array
-  let messagesToSend = messages.length ? [...messages] : [];
+  let messagesToSend = Array.isArray(messages) ? [...messages] : [];
   messagesToSend.push({
     role: "user",
     content: userMessage
@@ -41,6 +45,7 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Chataibot API Error:', error.response ? error.response.data : error.message);
+    if (res.headersSent) return;
     res.status(500).json({ 
       error: error.response?.data?.message || 'Something went wrong with Chataibot API' 
     });

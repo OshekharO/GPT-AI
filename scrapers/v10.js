@@ -3,17 +3,17 @@ const axios = require('axios');
 
 const router = express.Router();
 
-// API Route v10 - chataibot.ru
+// API Route v10 - Pollinations
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
 
-  const apiUrl = 'https://text.pollinations.ai/';
-
-  if (!userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') {
     return res.status(400).json({ 
-      error: "No message provided" 
+      error: "No message provided or message is not a string"
     });
   }
+
+  const apiUrl = 'https://text.pollinations.ai/';
 
   try {
     const response = await axios.get(`${apiUrl}${encodeURIComponent(userMessage)}?model=openai`);
@@ -29,7 +29,7 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Chataibot replacement API Error:', error.response ? error.response.data : error.message);
-    
+    if (res.headersSent) return;
     res.status(500).json({ 
       error: 'Failed to process Chataibot replacement request',
       details: error.message,

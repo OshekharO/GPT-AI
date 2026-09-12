@@ -5,7 +5,12 @@ const router = express.Router();
 
 // API Route v5 - goody2.ai
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
+
   const apiUrl = 'https://www.goody2.ai/send';
 
   const headers = {
@@ -28,10 +33,26 @@ router.post('/', async (req, res) => {
     });
 
     let fullReply = '';
+    let lineBuffer = '';
+
+    const cleanup = () => {
+      req.removeListener('close', onClose);
+    };
+
+    const onClose = () => {
+      if (response.data && typeof response.data.destroy === 'function') {
+        response.data.destroy();
+      }
+    };
+
+    req.on('close', onClose);
 
     response.data.on('data', (chunk) => {
-      const lines = chunk.toString().split('\n');
-      lines.forEach(line => {
+      lineBuffer += chunk.toString();
+      let newlineIdx;
+      while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, newlineIdx).trim();
+        lineBuffer = lineBuffer.slice(newlineIdx + 1);
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.slice(6));
@@ -39,18 +60,28 @@ router.post('/', async (req, res) => {
               fullReply += data.content;
             }
           } catch (error) {
-            console.error("Error parsing SSE data:", error);
+            console.error("Error parsing SSE data in v5:", error.message);
           }
         }
-      });
+      }
     });
 
     response.data.on('end', () => {
+      cleanup();
+      if (res.headersSent) return;
       res.json({ reply: fullReply });
     });
 
+    response.data.on('error', (err) => {
+      cleanup();
+      console.error("Stream Error in v5:", err.message);
+      if (res.headersSent) return;
+      res.status(500).json({ error: 'Something went wrong with API v5' });
+    });
+
   } catch (error) {
-    console.error("API Request Error:", error);
+    console.error("API Request Error v5:", error.message);
+    if (res.headersSent) return;
     res.status(500).json({ error: 'Something went wrong with API v5' });
   }
 });

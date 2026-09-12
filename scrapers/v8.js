@@ -5,7 +5,11 @@ const router = express.Router();
 
 // API Route v8 - chatwithfiction.com
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage } = req.body || {};
+
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  }
 
   const apiUrl = 'https://www.chatwithfiction.com/api/gpt';
   const headers = {
@@ -27,7 +31,8 @@ router.post('/', async (req, res) => {
 
     res.json({ reply: replyText });
   } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
+    console.error('API v8 Error:', error.response ? error.response.data : error.message);
+    if (res.headersSent) return;
     res.status(500).json({ error: 'Something went wrong with csrf token maybe' });
   }
 });

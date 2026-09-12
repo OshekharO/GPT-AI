@@ -30,9 +30,10 @@ app.use('/chat/v12', require('./scrapers/v12'));
 app.use('/chat/v13', require('./scrapers/v13'));
 app.use('/chat/v14', require('./scrapers/v14'));
 
-
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}
 
 module.exports = app;
