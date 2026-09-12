@@ -13,7 +13,7 @@ A versatile Node.js server that integrates multiple chatbot APIs, offering a uni
 
 ## 🌟 Features
 
-- Seamless integration of multiple chatbot APIs (v1 to v14)
+- Seamless integration of multiple chatbot APIs (v1 to v15)
 - Built with Express.js for robust server-side operations
 - Cross-Origin Resource Sharing (CORS) enabled for web application compatibility
 - Straightforward error handling for improved debugging
@@ -78,6 +78,7 @@ curl -X POST http://localhost:3000/chat/v1 \
 | `/chat/v12` | [api.airforce](https://api.airforce) | GPT-4o-mini |
 | `/chat/v13` | [freeassist.ai](https://freeassist.ai) | GPT-5-mini |
 | `/chat/v14` | [chataibot.ru](https://chataibot.ru) | — |
+| `/chat/v15` | [openrouter.ai](https://openrouter.ai) | openrouter/free & others |
 
 ## 🛠️ Technologies
 
