@@ -3,93 +3,111 @@ const axios = require('axios');
 
 const router = express.Router();
 
-// API Route v6 - PinoyGPT
-router.post('/', async (req, res) => {
-  const { userMessage } = req.body || {};
+const CONFIG = {
+  URL: {
+    TOKEN: 'https://api.vulcanlabs.co/smith-auth/api/v1/token',
+    CHAT: 'https://api.vulcanlabs.co/smith-v2/api/v7/chat_android'
+  },
+  DEVICE_ID: 'A718E10669C7C5F7',
+  HEADERS: {
+    'User-Agent': 'Chat Smith Android, Version 4.0.1(970)',
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip',
+    'Content-Type': 'application/json; charset=utf-8',
+    'x-vulcan-application-id': 'com.smartwidgetlabs.chatgpt'
+  }
+};
 
-  if (!userMessage || typeof userMessage !== 'string') {
-    return res.status(400).json({ error: 'Message content is required and must be a string' });
+async function getToken() {
+  const payload = {
+    device_id: CONFIG.DEVICE_ID,
+    order_id: '',
+    product_id: '',
+    purchase_token: '',
+    subscription_id: ''
+  };
+
+  const response = await axios.post(CONFIG.URL.TOKEN, payload, {
+    headers: {
+      ...CONFIG.HEADERS,
+      'x-vulcan-request-id': '9149487891752494707093'
+    }
+  });
+
+  return response.data;
+}
+
+// API Route v6 - Vulcan Labs / Chat Smith
+router.post('/', async (req, res) => {
+  const { userMessage, messages } = req.body || {};
+
+  let messagesToSend = [];
+
+  if (Array.isArray(messages) && messages.length > 0) {
+    messagesToSend = [...messages];
+  } else if (userMessage && typeof userMessage === 'string') {
+    messagesToSend = [
+      {
+        role: 'system',
+        content: 'You are Chat Smith, a personal AI. Your goal is to be useful, friendly, and fun.'
+      },
+      {
+        role: 'user',
+        content: userMessage
+      }
+    ];
   }
 
-  const apiUrl = 'https://www.pinoygpt.com/wp-json/mwai-ui/v1/chats/submit';
-
-  const headers = {
-    'content-type': 'application/json',
-    'accept': 'text/event-stream',
-    'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-    'x-wp-nonce': 'ccbcf22745', // Note: This value need to be obtained dynamically
-    'origin': 'https://www.pinoygpt.com',
-    'referer': 'https://www.pinoygpt.com/',
-    'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-    'sec-ch-ua-mobile': '?1',
-    'sec-ch-ua-platform': '"Android"'
-  };
-
-  const body = {
-    "botId": "default",
-    "customId": "e369e9665e1e4fa3fd0cdc970f31cf12",
-    "session": "N/A",
-    "contextId": 12,
-    "newMessage": userMessage,
-    "newFileId": null,
-    "stream": true
-  };
+  if (messagesToSend.length === 0) {
+    return res.status(400).json({ error: 'Message content is required (userMessage or messages array)' });
+  }
 
   try {
-    const response = await axios.post(apiUrl, body, {
-      headers: headers,
-      responseType: 'stream'
-    });
+    const tokenData = await getToken();
+    const accessToken = tokenData?.AccessToken || tokenData?.access_token || tokenData?.token;
 
-    let fullReply = '';
-    let lineBuffer = '';
+    if (!accessToken) {
+      throw new Error('Failed to retrieve access token from Chat Smith auth');
+    }
 
-    const cleanup = () => {
-      req.removeListener('close', onClose);
-    };
-
-    const onClose = () => {
-      if (response.data && typeof response.data.destroy === 'function') {
-        response.data.destroy();
-      }
-    };
-
-    req.on('close', onClose);
-
-    response.data.on('data', (chunk) => {
-      lineBuffer += chunk.toString();
-      let newlineIdx;
-      while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
-        const line = lineBuffer.slice(0, newlineIdx).trim();
-        lineBuffer = lineBuffer.slice(newlineIdx + 1);
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'live' && data.data) {
-              fullReply += data.data;
-            }
-          } catch (error) {
-            console.error("Error parsing SSE data in v6:", error.message);
+    const payload = {
+      usage_model: {
+        provider: 'openai',
+        model: 'gpt-4o-mini'
+      },
+      user: CONFIG.DEVICE_ID,
+      messages: messagesToSend,
+      nsfw_check: true,
+      tools: [
+        {
+          function: {
+            name: 'create_ai_art'
           }
         }
+      ]
+    };
+
+    const response = await axios.post(CONFIG.URL.CHAT, payload, {
+      headers: {
+        ...CONFIG.HEADERS,
+        'x-auth-token': 'A4gnMV1ReuPphVWC/az7HiXbdiG4lpynFp0GA1k6EJ3P1os8bLHiYgAwJZ8Hi80hDMLzxEWsn+srJ5CxEVHDU/mBrrfSVHV1MJhm9WKM4dTHOcCc4RMpHDEg5GTNPsS19bUFsm8IW/SH5eY+BIwgPg4P4JT41c1eC83swjZ3FVA=',
+        'authorization': `Bearer ${accessToken}`,
+        'x-firebase-appcheck-error': '-9%3A+Integrity+API+error...',
+        'x-vulcan-request-id': '9149487891752494721341'
       }
     });
 
-    response.data.on('end', () => {
-      cleanup();
-      if (res.headersSent) return;
-      res.json({ reply: fullReply.trim() });
-    });
+    const choice = response.data?.choices?.[0];
+    const reply = choice?.Message?.content || choice?.message?.content || '';
 
-    response.data.on('error', (err) => {
-      cleanup();
-      console.error("Stream Error in v6:", err.message);
-      if (res.headersSent) return;
-      res.status(500).json({ error: 'Something went wrong with API v6' });
-    });
+    if (!reply) {
+      throw new Error('No valid response content received from Chat Smith');
+    }
+
+    res.json({ reply });
 
   } catch (error) {
-    console.error("API Request Error v6:", error.message);
+    console.error('API v6 Request Error:', error.response ? error.response.data : error.message);
     if (res.headersSent) return;
     res.status(500).json({ error: 'Something went wrong with API v6' });
   }

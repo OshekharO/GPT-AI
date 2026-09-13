@@ -64,21 +64,21 @@ curl -X POST http://localhost:3000/chat/v1 \
 
 | Endpoint | Backed By | Model / Notes |
 |----------|-----------|---------------|
-| `/chat/v1` | [notegpt.io](https://notegpt.io) | GPT-4.1 mini |
-| `/chat/v2` | [ansari.chat](https://ansari.chat) | — |
-| `/chat/v3` | [chateverywhere.app](https://chateverywhere.app) | GPT-3.5 Turbo |
+| `/chat/v1` | [pollinations.ai](https://gen.pollinations.ai) | Pollinations Gen AI |
+| `/chat/v2` | [openrouter.ai](https://openrouter.ai) | OpenRouter models |
+| `/chat/v3` | [v2.chateverywhere.app](https://v2.chateverywhere.app) | Chat Everywhere |
 | `/chat/v4` | [unlimitedai.chat](https://app.unlimitedai.chat) | Reasoning model |
-| `/chat/v5` | [goody2.ai](https://www.goody2.ai) | — |
-| `/chat/v6` | [pinoygpt.com](https://www.pinoygpt.com) | — |
-| `/chat/v7` | [freedomgpt.com](https://chat.freedomgpt.com) | Claude Opus 4.7 |
-| `/chat/v8` | [chatwithfiction.com](https://www.chatwithfiction.com) | — |
+| `/chat/v5` | [goody2.ai](https://www.goody2.ai) | Goody2 AI |
+| `/chat/v6` | Chat Smith | gpt-4o-mini (Vulcan Labs) |
+| `/chat/v7` | [freedomgpt.com](https://chat.freedomgpt.com) | Weaver / FreedomGPT |
+| `/chat/v8` | [chatwithfiction.com](https://www.chatwithfiction.com) | Chat with Fiction |
 | `/chat/v9` | [bookai.chat](https://bookai.chat) | GPT-3.5 Turbo |
-| `/chat/v10` | [pollinations.ai](https://text.pollinations.ai) | OpenAI |
-| `/chat/v11` | [freeassist.ai](https://freeassist.ai) | GPT-5-nano |
-| `/chat/v12` | [api.airforce](https://api.airforce) | GPT-4o-mini |
-| `/chat/v13` | [freeassist.ai](https://freeassist.ai) | GPT-5-mini |
-| `/chat/v14` | [chataibot.ru](https://chataibot.ru) | — |
-| `/chat/v15` | [openrouter.ai](https://openrouter.ai) | openrouter/free & others |
+| `/chat/v10` | [publicai.co](https://publicai.co) | PublicAI |
+| `/chat/v11` | [supabase.co](https://supabase.co) | gpt-5-nano |
+| `/chat/v12` | [api.airforce](https://api.airforce) | llama-instant |
+| `/chat/v13` | [supabase.co](https://supabase.co) | gpt-5-mini |
+| `/chat/v14` | [chataibot.ru](https://chataibot.ru) | Chataibot |
+| `/chat/v15` | [ansari.chat](https://ansari.chat) | Ansari Chat |
 
 ## 🛠️ Technologies
 
