@@ -27,7 +27,7 @@ Send a POST request to any `/chat/vN` endpoint to interact with the chatbot.
 #### Endpoint
 
 ```
-POST http://localhost:3000/chat/v1
+POST https://gpt-ai-olive.vercel.app/chat/v1
 ```
 
 #### Headers
