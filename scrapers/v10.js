@@ -17,9 +17,9 @@ function notegptMakeCookie() {
   return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
 }
 
-async function handleV1(req, res) {
+async function handleV10(req, res) {
   const source = req.method === 'GET' ? req.query : req.body;
-  const { lang, model, tone, length, convId } = source || {};
+  const { lang, model, tone, length, convId, image_urls, chat_mode, enable_web_search, app_id, t, sign } = source || {};
   // Coerce userMessage to string to handle array values from repeated query params
   const rawMessage = source ? source.userMessage : undefined;
   const userMessage = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
@@ -43,58 +43,69 @@ async function handleV1(req, res) {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'cookie': cookie
   };
+
   const payload = {
     message: userMessage,
-    language: lang || 'en',
-    model: model || 'gpt-4.1-mini',
+    language: lang || 'auto',
+    model: model || 'minimax-m3',
     tone: tone || 'default',
     length: length || 'moderate',
-    conversation_id: conversationId
+    conversation_id: conversationId,
+    image_urls: Array.isArray(image_urls) ? image_urls : [],
+    chat_mode: chat_mode || 'standard',
+    enable_web_search: enable_web_search !== undefined ? Boolean(enable_web_search) : false,
+    app_id: app_id || 'notegpt_8c92b6'
   };
+
+  if (t) payload.t = t;
+  if (sign) payload.sign = sign;
 
   try {
     const response = await axios.post('https://notegpt.io/api/v2/chat/stream', payload, { headers, responseType: 'text' });
 
     let lineBuffer = response.data || '';
     const texts = [];
+    const reasonings = [];
     let newlineIdx;
+
+    const parseData = (dataStr) => {
+      if (!dataStr.trim()) return;
+      try {
+        const parsed = JSON.parse(dataStr);
+        if (parsed.done) return;
+        if (parsed.text) {
+          texts.push(parsed.text);
+        }
+        if (parsed.reasoning) {
+          reasonings.push(parsed.reasoning);
+        }
+      } catch (parseErr) {
+        console.error('NoteGPT SSE parse error:', parseErr.message, '| raw:', dataStr);
+      }
+    };
 
     while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
       const line = lineBuffer.slice(0, newlineIdx).trim();
       lineBuffer = lineBuffer.slice(newlineIdx + 1);
       if (line.startsWith('data: ')) {
-        const data = line.substring(6);
-        if (data.trim()) {
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.text) {
-              texts.push(parsed.text);
-            }
-          } catch (parseErr) {
-            console.error('NoteGPT SSE parse error:', parseErr.message, '| raw:', data);
-          }
-        }
+        parseData(line.substring(6));
       }
     }
 
     if (lineBuffer.trim().startsWith('data: ')) {
-      const data = lineBuffer.trim().substring(6);
-      if (data.trim()) {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.text) {
-            texts.push(parsed.text);
-          }
-        } catch (_) {}
-      }
+      parseData(lineBuffer.trim().substring(6));
     }
 
-    if (texts.length === 0) {
+    const replyText = texts.join('');
+    const reasoningText = reasonings.join('');
+
+    if (!replyText && !reasoningText) {
       return res.status(500).json({ error: 'NoteGPT returned no content' });
     }
 
     res.json({
-      reply: texts.join(''),
+      reply: replyText || reasoningText,
+      ...(reasoningText && replyText ? { reasoning: reasoningText } : {}),
       conversation_id: conversationId,
       api: 'NoteGPT'
     });
