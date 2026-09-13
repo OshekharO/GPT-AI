@@ -87,13 +87,13 @@ async function handleV10(req, res) {
     while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
       const line = lineBuffer.slice(0, newlineIdx).trim();
       lineBuffer = lineBuffer.slice(newlineIdx + 1);
-      if (line.startsWith('data: ')) {
-        parseData(line.substring(6));
+      if (line.startsWith('data:')) {
+        parseData(line.slice(5).trim());
       }
     }
 
-    if (lineBuffer.trim().startsWith('data: ')) {
-      parseData(lineBuffer.trim().substring(6));
+    if (lineBuffer.trim().startsWith('data:')) {
+      parseData(lineBuffer.trim().slice(5).trim());
     }
 
     const replyText = texts.join('');
