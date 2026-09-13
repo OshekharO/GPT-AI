@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'GPT-AI API is running' });
+  res.json({ status: 'ok', author: 'Saksham Shekher', message: 'GPT-AI API is running', repo: 'https://github.com/OshekharO/GPT-AI' });
 });
 
 // Mount scrapers
