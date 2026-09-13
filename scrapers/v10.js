@@ -127,7 +127,8 @@ async function handleV10(req, res) {
     }
 
     res.json({
-      reply
+      reply,
+      model: response.data?.model || selectedModel
     });
 
   } catch (error) {
