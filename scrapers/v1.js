@@ -1,108 +1,142 @@
 const express = require('express');
 const axios = require('axios');
-const crypto = require('crypto');
 
 const router = express.Router();
 
-// Magic value required by the notegpt.io sbox-guid cookie field
-const NOTEGPT_SBOX_MAGIC = '907803882';
-// 30 days in seconds, used for the _ga cookie's creation-time offset
-const NOTEGPT_GA_OFFSET_SECONDS = 2592000;
+/**
+ * Extracts and cleans text content from diverse model response structures.
+ * Removes thinking/reasoning tags like <think>...</think> if present.
+ */
+function extractReply(data) {
+  if (!data) return '';
 
-function notegptMakeCookie() {
-  const anonId = crypto.randomUUID();
-  const sbox = Buffer.from(`${Math.floor(Date.now() / 1000)}|${NOTEGPT_SBOX_MAGIC}`).toString('base64');
-  const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000)}`;
-  const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - NOTEGPT_GA_OFFSET_SECONDS)}`;
-  return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
-}
+  let rawContent = '';
 
-async function handleV1(req, res) {
-  const source = req.method === 'GET' ? req.query : req.body;
-  const { lang, model, tone, length, convId } = source || {};
-  // Coerce userMessage to string to handle array values from repeated query params
-  const rawMessage = source ? source.userMessage : undefined;
-  const userMessage = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
-
-  if (req.method === 'GET') {
-    res.set('Cache-Control', 'no-store');
+  if (Array.isArray(data.choices) && data.choices.length > 0) {
+    const choice = data.choices[0];
+    if (choice.message) {
+      if (typeof choice.message.content === 'string') {
+        rawContent = choice.message.content;
+      } else if (Array.isArray(choice.message.content)) {
+        rawContent = choice.message.content
+          .map(part => (typeof part === 'string' ? part : part.text || ''))
+          .join('');
+      } else if (choice.message.content && typeof choice.message.content === 'object') {
+        rawContent = choice.message.content.text || JSON.stringify(choice.message.content);
+      }
+    } else if (choice.text && typeof choice.text === 'string') {
+      rawContent = choice.text;
+    } else if (choice.delta && choice.delta.content) {
+      rawContent = typeof choice.delta.content === 'string'
+        ? choice.delta.content
+        : JSON.stringify(choice.delta.content);
+    }
   }
 
-  if (!userMessage || typeof userMessage !== 'string') {
-    return res.status(400).json({ error: 'Message content is required and must be a string' });
-  }
-
-  const conversationId = convId || crypto.randomUUID();
-  const cookie = notegptMakeCookie();
-  const headers = {
-    'authority': 'notegpt.io',
-    'accept': '*/*',
-    'content-type': 'application/json',
-    'origin': 'https://notegpt.io',
-    'referer': 'https://notegpt.io/ai-chat',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'cookie': cookie
-  };
-  const payload = {
-    message: userMessage,
-    language: lang || 'en',
-    model: model || 'gpt-4.1-mini',
-    tone: tone || 'default',
-    length: length || 'moderate',
-    conversation_id: conversationId
-  };
-
-  try {
-    const response = await axios.post('https://notegpt.io/api/v2/chat/stream', payload, { headers, responseType: 'text' });
-
-    let lineBuffer = response.data || '';
-    const texts = [];
-    let newlineIdx;
-
-    while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
-      const line = lineBuffer.slice(0, newlineIdx).trim();
-      lineBuffer = lineBuffer.slice(newlineIdx + 1);
-      if (line.startsWith('data: ')) {
-        const data = line.substring(6);
-        if (data.trim()) {
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.text) {
-              texts.push(parsed.text);
-            }
-          } catch (parseErr) {
-            console.error('NoteGPT SSE parse error:', parseErr.message, '| raw:', data);
-          }
+  if (!rawContent) {
+    if (typeof data.content === 'string') {
+      rawContent = data.content;
+    } else if (typeof data.reply === 'string') {
+      rawContent = data.reply;
+    } else if (typeof data === 'string') {
+      rawContent = data;
+    } else {
+      const str = JSON.stringify(data);
+      const match = str.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (match && match[1]) {
+        try {
+          rawContent = JSON.parse(`"${match[1]}"`);
+        } catch (_) {
+          rawContent = match[1];
         }
       }
     }
+  }
 
-    if (lineBuffer.trim().startsWith('data: ')) {
-      const data = lineBuffer.trim().substring(6);
-      if (data.trim()) {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.text) {
-            texts.push(parsed.text);
-          }
-        } catch (_) {}
-      }
-    }
+  // Remove <think>...</think> reasoning blocks if present
+  let cleaned = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-    if (texts.length === 0) {
-      return res.status(500).json({ error: 'NoteGPT returned no content' });
+  return cleaned || rawContent.trim();
+}
+
+const AVAILABLE_MODELS = [
+  'openai/gpt-5.4-nano',
+  'openai',
+  'openai/gpt-oss-20b',
+  'community/AkshayCoder48/v3',
+  'community/Lorodn4x/deepseek-v4-flash',
+  'x-ai/grok-4.20',
+  'qwen/qwen3.8-2.4t-a95b'
+];
+
+async function handleV10(req, res) {
+  const source = req.method === 'GET' ? req.query : req.body;
+  const { userMessage, messages, model, reasoning_effort = 'medium', ...rest } = source || {};
+
+  const selectedModel = model || AVAILABLE_MODELS[Math.floor(Math.random() * AVAILABLE_MODELS.length)];
+
+  const rawMessage = userMessage;
+  const msgStr = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
+
+  let messagesToSend = Array.isArray(messages) ? [...messages] : [];
+
+  if (msgStr && typeof msgStr === 'string') {
+    messagesToSend.push({
+      role: 'user',
+      content: msgStr
+    });
+  }
+
+  if (messagesToSend.length === 0) {
+    return res.status(400).json({
+      error: 'Message content is required (userMessage or messages array)'
+    });
+  }
+
+  const authHeader = req.headers.authorization;
+  const envKey = process.env.POLLINATIONS_API_KEY || process.env.V10_API_KEY;
+  const apiKey = authHeader || (envKey ? (envKey.startsWith('Bearer ') ? envKey : `Bearer ${envKey}`) : null);
+
+  if (!apiKey) {
+    return res.status(401).json({
+      error: 'API key is required. Provide Authorization header or set POLLINATIONS_API_KEY env variable.'
+    });
+  }
+
+  const headers = {
+    'Authorization': apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  };
+
+  const payload = {
+    model: selectedModel,
+    messages: messagesToSend,
+    ...(reasoning_effort !== undefined && { reasoning_effort }),
+    ...rest
+  };
+
+  const apiUrl = 'https://gen.pollinations.ai/v1/chat/completions';
+
+  try {
+    const response = await axios.post(apiUrl, payload, { headers });
+
+    const reply = extractReply(response.data);
+
+    if (!reply) {
+      throw new Error('No valid response content received from Pollinations');
     }
 
     res.json({
-      reply: texts.join(''),
-      conversation_id: conversationId,
-      api: 'NoteGPT'
+      reply,
+      model: response.data?.model || selectedModel
     });
+
   } catch (error) {
-    console.error('NoteGPT API Error:', error.response ? error.response.data : error.message);
+    console.error('Pollinations v10 API Error:', error.response ? error.response.data : error.message);
     if (res.headersSent) return;
     res.status(500).json({
-      error: error.response?.data?.message || 'Something went wrong with NoteGPT API'
+      error: 'Failed to process Pollinations request',
+      details: error.response?.data?.error?.message || error.message
     });
   }
 }
