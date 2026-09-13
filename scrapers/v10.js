@@ -127,9 +127,7 @@ async function handleV10(req, res) {
     }
 
     res.json({
-      reply,
-      model: response.data?.model || selectedModel,
-      api: 'pollinations (via gen.pollinations.ai)'
+      reply
     });
 
   } catch (error) {
