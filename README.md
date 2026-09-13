@@ -66,7 +66,7 @@ curl -X POST http://localhost:3000/chat/v1 \
 |----------|-----------|---------------|
 | `/chat/v1` | [pollinations.ai](https://gen.pollinations.ai) | Pollinations Gen AI |
 | `/chat/v2` | [openrouter.ai](https://openrouter.ai) | OpenRouter models |
-| `/chat/v3` | [v2.chateverywhere.app](https://v2.chateverywhere.app) | Chat Everywhere |
+| `/chat/v3` | [ai.riple.org](https://ai.riple.org/) | Riple AI / SAANVI |
 | `/chat/v4` | [unlimitedai.chat](https://app.unlimitedai.chat) | Reasoning model |
 | `/chat/v5` | [goody2.ai](https://www.goody2.ai) | Goody2 AI |
 | `/chat/v6` | Chat Smith | gpt-4o-mini (Vulcan Labs) |
@@ -78,7 +78,7 @@ curl -X POST http://localhost:3000/chat/v1 \
 | `/chat/v12` | [api.airforce](https://api.airforce) | llama-instant |
 | `/chat/v13` | [supabase.co](https://supabase.co) | gpt-5-mini |
 | `/chat/v14` | [chataibot.ru](https://chataibot.ru) | Chataibot |
-| `/chat/v15` | [ansari.chat](https://ansari.chat) | Ansari Chat |
+| `/chat/v15` | [beta.dopple.ai](https://beta.dopple.ai/) | Dopple AI |
 
 ## 🛠️ Technologies
 
