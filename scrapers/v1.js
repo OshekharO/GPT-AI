@@ -69,7 +69,7 @@ const AVAILABLE_MODELS = [
   'qwen/qwen3.8-2.4t-a95b'
 ];
 
-async function handleV10(req, res) {
+async function handleV1(req, res) {
   const source = req.method === 'GET' ? req.query : req.body;
   const { userMessage, messages, model, reasoning_effort = 'medium', ...rest } = source || {};
 
