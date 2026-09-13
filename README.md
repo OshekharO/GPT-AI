@@ -78,7 +78,7 @@ curl -X POST http://localhost:3000/chat/v1 \
 | `/chat/v12` | [api.airforce](https://api.airforce) | llama-instant |
 | `/chat/v13` | [supabase.co](https://supabase.co) | gpt-5-mini |
 | `/chat/v14` | [chataibot.ru](https://chataibot.ru) | Chataibot |
-| `/chat/v15` | [ansari.chat](https://ansari.chat) | Ansari Chat |
+| `/chat/v15` | [beta.dopple.ai](https://beta.dopple.ai/) | Dopple AI |
 
 ## 🛠️ Technologies
 
