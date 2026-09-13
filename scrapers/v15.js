@@ -53,8 +53,7 @@ router.post('/', async (req, res) => {
 
     res.json({
       reply,
-      ...(reasoningText && { reasoning: reasoningText }),
-      raw: response.data
+      ...(reasoningText && { reasoning: reasoningText })
     });
 
   } catch (error) {
