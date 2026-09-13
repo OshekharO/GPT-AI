@@ -3,45 +3,65 @@ const axios = require('axios');
 
 const router = express.Router();
 
-// API Route v2 - Anshari
+// API Route v2 - OpenRouter
 router.post('/', async (req, res) => {
-  const { userMessage } = req.body || {};
+  const { userMessage, messages = [], model = 'openrouter/free', reasoning, ...rest } = req.body || {};
 
-  if (!userMessage || typeof userMessage !== 'string') {
-    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  let messagesToSend = Array.isArray(messages) ? [...messages] : [];
+
+  if (userMessage && typeof userMessage === 'string') {
+    messagesToSend.push({
+      role: 'user',
+      content: userMessage
+    });
   }
 
-  const apiUrl = 'https://api.ansari.chat/api/v1/complete';
+  if (messagesToSend.length === 0) {
+    return res.status(400).json({ error: 'Message content is required (userMessage or messages array)' });
+  }
+
+  const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+  const authHeader = req.headers.authorization;
+  const apiKey = authHeader || (process.env.OPENROUTER_API_KEY ? `Bearer ${process.env.OPENROUTER_API_KEY}` : null);
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key is required. Provide Authorization header or set OPENROUTER_API_KEY env variable.' });
+  }
+
   const headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Postify/1.0.0',
-    'Referer': 'https://ansari.chat/',
-    'Origin': 'https://ansari.chat',
-    'x-forwarded-for': new Array(4).fill(0).map(() => Math.floor(Math.random() * 256)).join('.')
+    'Authorization': apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
   };
+
   const body = {
-    messages: [
-      {
-        role: "user",
-        content: userMessage
-      }
-    ]
+    model,
+    messages: messagesToSend,
+    ...(reasoning !== undefined && { reasoning }),
+    ...rest
   };
 
   try {
     const response = await axios.post(apiUrl, body, { headers });
-    
-    if (!response.data) {
-      throw new Error('No response data received');
+
+    const messageObj = response.data?.choices?.[0]?.message;
+    if (!messageObj) {
+      throw new Error('No valid response content received from OpenRouter');
     }
 
-    res.json({ reply: response.data });
+    const reply = messageObj.content || '';
+    const reasoningText = messageObj.reasoning || null;
+
+    res.json({
+      reply,
+      ...(reasoningText && { reasoning: reasoningText })
+    });
 
   } catch (error) {
-    console.error('Anshari API Error:', error.response ? error.response.data : error.message);
+    console.error('OpenRouter API Error:', error.response ? error.response.data : error.message);
     if (res.headersSent) return;
-    res.status(500).json({ 
-      error: error.response?.data?.message || 'Something went wrong with Anshari API' 
+    res.status(500).json({
+      error: 'Failed to process OpenRouter request',
+      details: error.response?.data?.error?.message || error.message
     });
   }
 });
