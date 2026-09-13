@@ -59,9 +59,21 @@ function extractReply(data) {
   return cleaned || rawContent.trim();
 }
 
+const AVAILABLE_MODELS = [
+  'openai/gpt-5.4-nano',
+  'openai',
+  'openai/gpt-oss-20b',
+  'community/AkshayCoder48/v3',
+  'community/Lorodn4x/deepseek-v4-flash',
+  'x-ai/grok-4.20',
+  'qwen/qwen3.8-2.4t-a95b'
+];
+
 async function handleV10(req, res) {
   const source = req.method === 'GET' ? req.query : req.body;
-  const { userMessage, messages, model = 'openai', reasoning_effort, ...rest } = source || {};
+  const { userMessage, messages, model, reasoning_effort = 'medium', ...rest } = source || {};
+
+  const selectedModel = model || AVAILABLE_MODELS[Math.floor(Math.random() * AVAILABLE_MODELS.length)];
 
   const rawMessage = userMessage;
   const msgStr = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
@@ -97,7 +109,7 @@ async function handleV10(req, res) {
   };
 
   const payload = {
-    model,
+    model: selectedModel,
     messages: messagesToSend,
     ...(reasoning_effort !== undefined && { reasoning_effort }),
     ...rest
@@ -116,8 +128,7 @@ async function handleV10(req, res) {
 
     res.json({
       reply,
-      model: response.data?.model || model,
-      api: 'pollinations (via gen.pollinations.ai)'
+      model: response.data?.model || selectedModel
     });
 
   } catch (error) {
