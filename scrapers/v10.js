@@ -9,11 +9,11 @@ const NOTEGPT_SBOX_MAGIC = '907803882';
 // 30 days in seconds, used for the _ga cookie's creation-time offset
 const NOTEGPT_GA_OFFSET_SECONDS = 2592000;
 
-function notegptMakeCookie() {
+function notegptMakeCookie(nowSec) {
   const anonId = crypto.randomUUID();
-  const sbox = Buffer.from(`${Math.floor(Date.now() / 1000)}|${NOTEGPT_SBOX_MAGIC}`).toString('base64');
-  const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000)}`;
-  const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(Date.now() / 1000 - NOTEGPT_GA_OFFSET_SECONDS)}`;
+  const sbox = Buffer.from(`${nowSec}|${NOTEGPT_SBOX_MAGIC}`).toString('base64');
+  const gid = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${nowSec}`;
+  const ga = `GA1.2.${Math.floor(Math.random() * 1000000000)}.${nowSec - NOTEGPT_GA_OFFSET_SECONDS}`;
   return `anonymous_user_id=${anonId}; sbox-guid=${sbox}; _gid=${gid}; _ga=${ga}`;
 }
 
@@ -21,7 +21,7 @@ async function handleV10(req, res) {
   const source = req.method === 'GET' ? req.query : req.body;
   const { lang, model, tone, length, convId, image_urls, chat_mode, enable_web_search, app_id, t, sign } = source || {};
   // Coerce userMessage to string to handle array values from repeated query params
-  const rawMessage = source ? source.userMessage : undefined;
+  const rawMessage = source ? (source.userMessage || source.message || source.prompt || source.q) : undefined;
   const userMessage = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
 
   if (req.method === 'GET') {
@@ -33,37 +33,55 @@ async function handleV10(req, res) {
   }
 
   const conversationId = convId || crypto.randomUUID();
-  const cookie = notegptMakeCookie();
+  const timestamp = t ? Number(t) : Math.floor(Date.now() / 1000);
+  const cookie = notegptMakeCookie(timestamp);
+
   const headers = {
     'authority': 'notegpt.io',
     'accept': '*/*',
     'content-type': 'application/json',
     'origin': 'https://notegpt.io',
     'referer': 'https://notegpt.io/ai-chat',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
     'cookie': cookie
   };
 
   const payload = {
     message: userMessage,
     language: lang || 'auto',
-    model: model || 'minimax-m3',
+    model: model || 'deepseek-v4-flash',
     tone: tone || 'default',
     length: length || 'moderate',
     conversation_id: conversationId,
     image_urls: Array.isArray(image_urls) ? image_urls : [],
     chat_mode: chat_mode || 'standard',
     enable_web_search: enable_web_search !== undefined ? Boolean(enable_web_search) : false,
-    app_id: app_id || 'notegpt_8c92b6'
+    app_id: app_id || 'notegpt_8c92b6',
+    t: timestamp
   };
 
-  if (t) payload.t = t;
-  if (sign) payload.sign = sign;
+  if (sign) {
+    payload.sign = sign;
+  }
 
   try {
     const response = await axios.post('https://notegpt.io/api/v2/chat/stream', payload, { headers, responseType: 'text' });
 
     let lineBuffer = response.data || '';
+
+    // If response is a JSON error object instead of text/event-stream
+    if (typeof lineBuffer === 'string' && lineBuffer.trim().startsWith('{')) {
+      try {
+        const jsonRes = JSON.parse(lineBuffer.trim());
+        if (jsonRes.code && jsonRes.code !== 0 && jsonRes.message) {
+          return res.status(500).json({
+            error: jsonRes.message || 'NoteGPT API error',
+            code: jsonRes.code
+          });
+        }
+      } catch (_) {}
+    }
+
     const texts = [];
     const reasonings = [];
     let newlineIdx;
