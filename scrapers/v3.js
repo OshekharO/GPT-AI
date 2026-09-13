@@ -1,97 +1,111 @@
 const express = require('express');
 const axios = require('axios');
-const crypto = require('crypto');
 
 const router = express.Router();
 
-// API Route v3 - chateverywhere.app (v2 API)
-router.post('/', async (req, res) => {
-  const { userMessage } = req.body || {};
+async function handleV3(req, res) {
+  const source = req.method === 'GET' ? req.query : req.body;
+  const { userMessage, messages, ...rest } = source || {};
 
-  if (!userMessage || typeof userMessage !== 'string') {
-    return res.status(400).json({ error: 'Message content is required and must be a string' });
+  const rawMessage = source ? (userMessage || source.message || source.prompt || source.q) : undefined;
+  const msgStr = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
+
+  let messagesToSend = [];
+
+  if (Array.isArray(messages) && messages.length > 0) {
+    messagesToSend = [...messages];
+  } else if (msgStr && typeof msgStr === 'string') {
+    messagesToSend = [
+      {
+        role: 'user',
+        content: msgStr
+      }
+    ];
   }
 
-  const submitId = `chat-v2-submit-${crypto.randomBytes(8).toString('hex')}`;
-  const apiUrl = 'https://v2.chateverywhere.app/api/chat';
+  if (messagesToSend.length === 0) {
+    return res.status(400).json({ error: 'Message content is required (userMessage or messages array)' });
+  }
+
+  const apiUrl = 'https://ai.riple.org/';
   const headers = {
-    'content-type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://v2.chateverywhere.app/en'
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   };
 
-  const body = {
-    submitId,
-    startNewChat: true,
-    content: userMessage,
-    newFileIds: [],
-    clientTimeZone: 'Asia/Calcutta',
-    enabledTools: [
-      'google-search',
-      'web-browse',
-      'memory',
-      'diagram-generation',
-      'read-file',
-      'mqtt-connection',
-      'youtube-analyzer',
-      'ce-bot',
-      'planner',
-      'unsplash-image-search',
-      'get-current-time'
-    ],
-    mqttConnections: [],
-    useBot: null,
-    isSuggestion: false,
-    chatMode: 'default',
-    imageGenerationModel: 'nano-banana',
-    consentedSessionId: null
+  const payload = {
+    messages: messagesToSend,
+    ...rest
   };
 
   try {
-    const postResponse = await axios.post(apiUrl, body, { headers });
-    const { chatHash } = postResponse.data || {};
+    const response = await axios.post(apiUrl, payload, {
+      headers,
+      responseType: 'stream'
+    });
 
-    if (!chatHash) {
-      throw new Error('Failed to obtain chatHash from API v3');
-    }
+    let lineBuffer = '';
+    let replyText = '';
 
-    const streamUrl = `https://v2.chateverywhere.app/api/chat/${chatHash}/stream?snapshotOnly=1`;
-    const streamHeaders = {
-      'User-Agent': headers['User-Agent'],
-      'Referer': `https://v2.chateverywhere.app/en?chat=${chatHash}`
+    const parseLine = (line) => {
+      if (!line.startsWith('data:')) return;
+      const dataStr = line.slice(5).trim();
+      if (dataStr === '[DONE]') return;
+      try {
+        const parsed = JSON.parse(dataStr);
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) {
+          replyText += delta;
+        }
+      } catch (_) {
+        // ignore malformed SSE chunks
+      }
     };
 
-    let replyText = '';
-    const maxRetries = 15;
-    const retryDelayMs = 1000;
+    response.data.on('data', (chunk) => {
+      lineBuffer += chunk.toString('utf-8');
+      let newlineIdx;
+      while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, newlineIdx).trim();
+        lineBuffer = lineBuffer.slice(newlineIdx + 1);
+        parseLine(line);
+      }
+    });
 
-    for (let i = 0; i < maxRetries; i++) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    response.data.on('end', () => {
+      if (lineBuffer.trim().startsWith('data:')) {
+        parseLine(lineBuffer.trim());
+      }
 
-      const streamResponse = await axios.get(streamUrl, { headers: streamHeaders });
-      const msgData = streamResponse.data?.message;
-
-      const text = msgData?.content || msgData?.parts?.[0]?.text || '';
-      const state = msgData?.parts?.[0]?.state;
-
-      if (text) {
-        replyText = text;
-        if (state !== 'streaming') {
-          break;
+      if (!replyText) {
+        if (!res.headersSent) {
+          return res.status(500).json({ error: 'No valid response content received from Riple AI' });
+        }
+      } else {
+        if (!res.headersSent) {
+          return res.json({ reply: replyText });
         }
       }
-    }
+    });
 
-    if (!replyText) {
-      throw new Error('No content received from API v3 stream');
-    }
+    response.data.on('error', (err) => {
+      console.error('Stream error in v3 API:', err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: 'Stream error in v3 API', details: err.message });
+      }
+    });
 
-    res.json({ reply: replyText });
   } catch (error) {
-    console.error('API v3 Request Error:', error.response ? error.response.data : error.message);
+    console.error('Riple AI v3 API Error:', error.response ? error.response.data : error.message);
     if (res.headersSent) return;
-    res.status(500).json({ error: 'Something went wrong with API v3' });
+    res.status(500).json({
+      error: 'Failed to process Riple AI request',
+      details: error.response?.data?.error?.message || error.message
+    });
   }
-});
+}
+
+router.get('/', handleV3);
+router.post('/', handleV3);
 
 module.exports = router;
