@@ -18,23 +18,70 @@ const CONFIG = {
   }
 };
 
-async function getToken() {
-  const payload = {
-    device_id: CONFIG.DEVICE_ID,
-    order_id: '',
-    product_id: '',
-    purchase_token: '',
-    subscription_id: ''
-  };
+// In-memory token cache to prevent redundant HTTP network requests on every request.
+// Saves ~50-300ms latency per chat invocation by reusing the token until expiration.
+let cachedTokenData = null;
+let tokenFetchPromise = null;
 
-  const response = await axios.post(CONFIG.URL.TOKEN, payload, {
-    headers: {
-      ...CONFIG.HEADERS,
-      'x-vulcan-request-id': '9149487891752494707093'
+/**
+ * Retrieves the access token, using an in-memory cache when valid.
+ * Deduplicates concurrent requests and handles expiration buffering.
+ */
+async function getToken(forceRefresh = false) {
+  if (!forceRefresh && cachedTokenData && cachedTokenData.expiresAt > Date.now()) {
+    return cachedTokenData.token;
+  }
+
+  // Deduplicate concurrent token requests
+  if (tokenFetchPromise) {
+    return tokenFetchPromise;
+  }
+
+  tokenFetchPromise = (async () => {
+    try {
+      const payload = {
+        device_id: CONFIG.DEVICE_ID,
+        order_id: '',
+        product_id: '',
+        purchase_token: '',
+        subscription_id: ''
+      };
+
+      const response = await axios.post(CONFIG.URL.TOKEN, payload, {
+        headers: {
+          ...CONFIG.HEADERS,
+          'x-vulcan-request-id': '9149487891752494707093'
+        }
+      });
+
+      const data = response.data;
+      const accessToken = data?.AccessToken || data?.access_token || data?.token;
+
+      if (!accessToken) {
+        throw new Error('Failed to retrieve access token from Chat Smith auth');
+      }
+
+      // Calculate expiration time with a 5-minute safety buffer before token expiry
+      let expiresAt = Date.now() + 60 * 60 * 1000; // Default 1 hour fallback
+      if (data?.AccessTokenExpiration) {
+        const expTime = new Date(data.AccessTokenExpiration).getTime();
+        if (!isNaN(expTime)) {
+          expiresAt = expTime - 5 * 60 * 1000;
+        }
+      }
+
+      cachedTokenData = {
+        token: accessToken,
+        expiresAt
+      };
+
+      return accessToken;
+    } finally {
+      tokenFetchPromise = null;
     }
-  });
+  })();
 
-  return response.data;
+  return tokenFetchPromise;
 }
 
 // API Route v6 - Vulcan Labs / Chat Smith
@@ -63,12 +110,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const tokenData = await getToken();
-    const accessToken = tokenData?.AccessToken || tokenData?.access_token || tokenData?.token;
-
-    if (!accessToken) {
-      throw new Error('Failed to retrieve access token from Chat Smith auth');
-    }
+    let accessToken = await getToken();
 
     const payload = {
       usage_model: {
@@ -87,15 +129,29 @@ router.post('/', async (req, res) => {
       ]
     };
 
-    const response = await axios.post(CONFIG.URL.CHAT, payload, {
+    const makeChatRequest = (token) => axios.post(CONFIG.URL.CHAT, payload, {
       headers: {
         ...CONFIG.HEADERS,
         'x-auth-token': 'A4gnMV1ReuPphVWC/az7HiXbdiG4lpynFp0GA1k6EJ3P1os8bLHiYgAwJZ8Hi80hDMLzxEWsn+srJ5CxEVHDU/mBrrfSVHV1MJhm9WKM4dTHOcCc4RMpHDEg5GTNPsS19bUFsm8IW/SH5eY+BIwgPg4P4JT41c1eC83swjZ3FVA=',
-        'authorization': `Bearer ${accessToken}`,
+        'authorization': `Bearer ${token}`,
         'x-firebase-appcheck-error': '-9%3A+Integrity+API+error...',
         'x-vulcan-request-id': '9149487891752494721341'
       }
     });
+
+    let response;
+    try {
+      response = await makeChatRequest(accessToken);
+    } catch (err) {
+      // If token expired or was invalidated (401 / 403), force refresh token once and retry
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        cachedTokenData = null;
+        accessToken = await getToken(true);
+        response = await makeChatRequest(accessToken);
+      } else {
+        throw err;
+      }
+    }
 
     const choice = response.data?.choices?.[0];
     const reply = choice?.Message?.content || choice?.message?.content || '';
