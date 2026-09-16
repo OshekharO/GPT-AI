@@ -1,7 +1,19 @@
 const express = require('express');
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 
 const router = express.Router();
+
+// Reuse HTTP/HTTPS agents with TCP keep-alive enabled to avoid TCP handshakes
+// and TLS negotiation overhead on repeated API requests. Saves ~30-100ms per call.
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+
+const httpClient = axios.create({
+  httpAgent,
+  httpsAgent
+});
 
 // API Route v2 - OpenRouter
 router.post('/', async (req, res) => {
@@ -41,7 +53,7 @@ router.post('/', async (req, res) => {
   };
 
   try {
-    const response = await axios.post(apiUrl, body, { headers });
+    const response = await httpClient.post(apiUrl, body, { headers });
 
     const messageObj = response.data?.choices?.[0]?.message;
     if (!messageObj) {
