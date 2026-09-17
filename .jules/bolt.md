@@ -1,0 +1,3 @@
+## 2026-09-16 - HTTP/HTTPS Keep-Alive Agent Reuse in Axios
+**Learning:** By default, `axios` creates new HTTP/HTTPS connection agents for requests, causing new TCP handshakes and TLS negotiation overhead for every outbound request (~30-100ms per call). Reusing custom `http.Agent` and `https.Agent` with `keepAlive: true` across requests keeps sockets open and significantly reduces request latency.
+**Action:** When making frequent outbound HTTP/HTTPS requests in Node.js scrapers or API handlers, instantiate persistent HTTP agents with `keepAlive: true` and configure `axios.create({ httpAgent, httpsAgent })`.
