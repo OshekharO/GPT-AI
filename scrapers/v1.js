@@ -1,7 +1,19 @@
 const express = require('express');
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 
 const router = express.Router();
+
+// Reuse HTTP/HTTPS agents with TCP keep-alive enabled to avoid TCP handshakes
+// and TLS negotiation overhead on repeated API requests. Saves ~30-100ms per call.
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+
+const httpClient = axios.create({
+  httpAgent,
+  httpsAgent
+});
 
 /**
  * Extracts and cleans text content from diverse model response structures.
@@ -118,7 +130,7 @@ async function handleV1(req, res) {
   const apiUrl = 'https://gen.pollinations.ai/v1/chat/completions';
 
   try {
-    const response = await axios.post(apiUrl, payload, { headers });
+    const response = await httpClient.post(apiUrl, payload, { headers });
 
     const reply = extractReply(response.data);
 
