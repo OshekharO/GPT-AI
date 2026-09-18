@@ -47,6 +47,18 @@ async function handleV3(req, res) {
     let lineBuffer = '';
     let replyText = '';
 
+    const cleanup = () => {
+      req.removeListener('close', onClose);
+    };
+
+    const onClose = () => {
+      if (response.data && typeof response.data.destroy === 'function') {
+        response.data.destroy();
+      }
+    };
+
+    req.on('close', onClose);
+
     const parseLine = (line) => {
       if (!line.startsWith('data:')) return;
       const dataStr = line.slice(5).trim();
@@ -73,6 +85,7 @@ async function handleV3(req, res) {
     });
 
     response.data.on('end', () => {
+      cleanup();
       if (lineBuffer.trim().startsWith('data:')) {
         parseLine(lineBuffer.trim());
       }
@@ -89,6 +102,7 @@ async function handleV3(req, res) {
     });
 
     response.data.on('error', (err) => {
+      cleanup();
       console.error('Stream error in v3 API:', err.message);
       if (!res.headersSent) {
         return res.status(500).json({ error: 'Stream error in v3 API', details: err.message });
