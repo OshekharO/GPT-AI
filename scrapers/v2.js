@@ -1,4 +1,5 @@
 const express = require('express');
+const { trimConversationHistory } = require('../utils/memory');
 const axios = require('axios');
 const http = require('http');
 const https = require('https');
@@ -28,6 +29,7 @@ router.post('/', async (req, res) => {
     });
   }
 
+  messagesToSend = trimConversationHistory(messagesToSend);
   if (messagesToSend.length === 0) {
     return res.status(400).json({ error: 'Message content is required (userMessage or messages array)' });
   }

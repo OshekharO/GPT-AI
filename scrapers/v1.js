@@ -1,4 +1,5 @@
 const express = require('express');
+const { trimConversationHistory } = require('../utils/memory');
 const axios = require('axios');
 const http = require('http');
 const https = require('https');
@@ -91,6 +92,7 @@ async function handleV1(req, res) {
   const msgStr = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
 
   let messagesToSend = Array.isArray(messages) ? [...messages] : [];
+  messagesToSend = trimConversationHistory(messagesToSend);
 
   if (msgStr && typeof msgStr === 'string') {
     messagesToSend.push({
