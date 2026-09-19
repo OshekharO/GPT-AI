@@ -1,4 +1,5 @@
 const express = require('express');
+const { trimConversationHistory } = require('../utils/memory');
 const axios = require('axios');
 const crypto = require('crypto');
 
@@ -15,7 +16,7 @@ async function handleV10(req, res) {
   const rawMessage = source ? (userMessage || source.message || source.prompt || source.q) : undefined;
   const msgStr = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
 
-  let messagesToSend = [];
+  let rawMessages = Array.isArray(messages) ? [...messages] : [];
 
   if (Array.isArray(messages) && messages.length > 0) {
     messagesToSend = messages.map(m => {
