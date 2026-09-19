@@ -73,13 +73,14 @@ function extractReply(data) {
 }
 
 const AVAILABLE_MODELS = [
-  'openai/gpt-5.4-nano',
-  'openai',
-  'openai/gpt-oss-20b',
+  'community/Spit-fires/muse-glimmer',
+  'community/vendouple/muse-glimmer-30b:free',
+  'community/chigwell/llm7-fast',
+  'community/voodoohop/anyvm-deepseek-chat',
+  'community/CloudCompile/agnes-3.0-flash',
+  'poolside/laguna-s-2.1',
   'community/AkshayCoder48/v3',
-  'community/Lorodn4x/deepseek-v4-flash',
-  'x-ai/grok-4.20',
-  'qwen/qwen3.8-2.4t-a95b'
+  'community/Lorodn4x/deepseek-v4-flash'
 ];
 
 async function handleV1(req, res) {
